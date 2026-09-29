@@ -98,9 +98,9 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .welcome-pose {
   position: absolute;
   left: var(--pose-x); top: 51%; height: 94%; width: auto; max-width: none;
-  transform: translate(-50%, -50%) rotate(var(--pose-tilt, 0deg)) scale(var(--pose-scale, 1));
+  transform: translate(-50%, calc(-50% + var(--pose-lift, 0%))) rotate(var(--pose-tilt, 0deg)) scale(var(--pose-scale, 1));
   transform-origin: center 72%;
-  transition: left 1.25s steps(6, end), transform 1.25s steps(6, end);
+  transition: transform .18s steps(2, end);
   filter: drop-shadow(0 calc(var(--u) * .15) calc(var(--u) * .15) #21130755);
 }
 .welcome-pose:nth-child(1) { --pose-x: 11%; --pose-tilt: -4deg; --pose-scale: .94; }
