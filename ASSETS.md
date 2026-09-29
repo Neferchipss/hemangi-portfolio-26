@@ -8,5 +8,6 @@ Source layers live in `assets/`. `python tools/build-assets.py` turns them into 
 | `reels.PNG` | `reel-singing/painting/craft/fashion/brewing.webp` | Splits the vertical sheet at its transparent gaps and trims each reel. |
 | `camera.PNG` | `camera.webp` | Removes the baked-in checkerboard, working inward from the edges, and trims. |
 | `text.PNG` | `title.webp` | Trims. This is the "An Unpredictable Person" title on the welcome screen. |
+| `poses.PNG` | `pose-1.webp` through `pose-5.webp` | Splits the five transparent character poses for the animated welcome screen. |
 
 The stage is authored in the background's 1670×942 coordinates. If the background changes, update the screen box (`.screen` in `style.css`), the projector and reel positions, and the beam polygon in `index.html` to match.

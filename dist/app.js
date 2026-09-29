@@ -20,6 +20,26 @@ const scenes = { welcome: $('welcome'), leader: $('leader'), titlecard: $('title
 const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const wait = ms => new Promise(r => setTimeout(r, reduced ? Math.min(ms, 60) : ms));
 
+// The five portraits trade places at irregular intervals while the welcome card is showing.
+const welcomePoses = [...document.querySelectorAll('.welcome-pose')];
+const poseSlots = [11, 30, 49, 68, 87];
+const poseOrder = [0, 1, 2, 3, 4];
+function shuffleWelcomePoses() {
+  if (!scenes.welcome.hidden && !document.hidden) {
+    const first = Math.floor(Math.random() * poseOrder.length);
+    let second = Math.floor(Math.random() * (poseOrder.length - 1));
+    if (second >= first) second++;
+    [poseOrder[first], poseOrder[second]] = [poseOrder[second], poseOrder[first]];
+    welcomePoses.forEach((pose, i) => {
+      pose.style.setProperty('--pose-x', `${poseSlots[poseOrder[i]]}%`);
+      pose.style.setProperty('--pose-tilt', `${(Math.random() * 9 - 4.5).toFixed(1)}deg`);
+      pose.style.setProperty('--pose-scale', (0.94 + Math.random() * 0.09).toFixed(3));
+    });
+  }
+  setTimeout(shuffleWelcomePoses, 3800 + Math.random() * 3800);
+}
+if (!reduced) setTimeout(shuffleWelcomePoses, 3800 + Math.random() * 2500);
+
 let content = FALLBACK;
 let active = null;      // reel currently on the projector
 let index = 0;          // item index within the active reel

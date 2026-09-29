@@ -92,16 +92,29 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 /* welcome */
 .welcome {
   display: flex; flex-direction: column; align-items: center; justify-content: center;
-  padding: 4% 8%;
   text-align: center;
 }
+.welcome-poses { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
+.welcome-pose {
+  position: absolute;
+  left: var(--pose-x); top: 51%; height: 94%; width: auto; max-width: none;
+  transform: translate(-50%, -50%) rotate(var(--pose-tilt, 0deg)) scale(var(--pose-scale, 1));
+  transform-origin: center 72%;
+  transition: left 1.7s cubic-bezier(.22, .72, .2, 1), transform 1.7s cubic-bezier(.22, .72, .2, 1);
+  filter: drop-shadow(0 calc(var(--u) * .15) calc(var(--u) * .15) #21130755);
+}
+.welcome-pose:nth-child(1) { --pose-x: 11%; --pose-tilt: -4deg; --pose-scale: .94; }
+.welcome-pose:nth-child(2) { --pose-x: 30%; --pose-tilt: 3deg; --pose-scale: .99; }
+.welcome-pose:nth-child(3) { --pose-x: 49%; --pose-tilt: -2deg; --pose-scale: .96; }
+.welcome-pose:nth-child(4) { --pose-x: 68%; --pose-tilt: 4deg; --pose-scale: 1; }
+.welcome-pose:nth-child(5) { --pose-x: 87%; --pose-tilt: -3deg; --pose-scale: .95; }
 .title-breathe {
-  width: 80%;
+  position: relative; z-index: 1; width: 48%;
   animation: title-breathe 5.5s ease-in-out 1.4s infinite;
 }
 .title-art {
   width: 100%;
-  filter: drop-shadow(0 calc(var(--u) * .25) 0 #0003);
+  filter: drop-shadow(0 calc(var(--u) * .16) calc(var(--u) * .3) #fff7d9) drop-shadow(0 calc(var(--u) * .25) 0 #0007);
   transform: rotate(-3deg);
   animation: title-in 1.4s cubic-bezier(.2, .9, .25, 1.2) both;
 }

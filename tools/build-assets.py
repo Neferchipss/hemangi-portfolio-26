@@ -58,3 +58,13 @@ cam.save(OUT+'camera.webp',quality=88,method=4)
 T=Image.open(SRC+'text.PNG').convert('RGBA')
 al=np.array(T)[...,3]; ys,xs=np.where(al>8); T=T.crop((xs.min(),ys.min(),xs.max()+1,ys.max()+1)); print('title',T.size)
 T.save(OUT+'title.webp',quality=90,method=4)
+
+# --- five transparent welcome portraits, split at the clear gaps in the source sheet
+P=Image.open(SRC+'poses.PNG').convert('RGBA')
+pose_cuts=[0,370,745,1080,1440,P.size[0]]
+for i in range(5):
+    part=P.crop((pose_cuts[i],0,pose_cuts[i+1],P.size[1]))
+    box=part.getbbox()
+    part=part.crop(box)
+    print('pose',i+1,part.size)
+    part.save(OUT+f'pose-{i+1}.webp',quality=90,method=4)
