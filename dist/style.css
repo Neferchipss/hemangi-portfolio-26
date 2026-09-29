@@ -100,7 +100,7 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   left: var(--pose-x); top: 51%; height: 94%; width: auto; max-width: none;
   transform: translate(-50%, -50%) rotate(var(--pose-tilt, 0deg)) scale(var(--pose-scale, 1));
   transform-origin: center 72%;
-  transition: left 1.7s cubic-bezier(.22, .72, .2, 1), transform 1.7s cubic-bezier(.22, .72, .2, 1);
+  transition: left 1.25s steps(6, end), transform 1.25s steps(6, end);
   filter: drop-shadow(0 calc(var(--u) * .15) calc(var(--u) * .15) #21130755);
 }
 .welcome-pose:nth-child(1) { --pose-x: 11%; --pose-tilt: -4deg; --pose-scale: .94; }
@@ -109,7 +109,7 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .welcome-pose:nth-child(4) { --pose-x: 68%; --pose-tilt: 4deg; --pose-scale: 1; }
 .welcome-pose:nth-child(5) { --pose-x: 87%; --pose-tilt: -3deg; --pose-scale: .95; }
 .title-breathe {
-  position: relative; z-index: 1; width: 48%;
+  position: absolute; z-index: 1; left: 50%; bottom: 9%; translate: -50% 0; width: 35%;
   animation: title-breathe 5.5s ease-in-out 1.4s infinite;
 }
 .title-art {
