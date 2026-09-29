@@ -1,62 +1,383 @@
 'use strict';
-// Replace a category's video value with an MP4/WebM URL when the real films are ready.
-const REELS = [
-  {id:'painting',title:'Painting',caption:'This',crop:[68,674,271,210],colors:['#293c35','#a94a31','#c29b57'],lines:['A little colour. A lot of feeling.','Sometimes, the brush says it better.','A world of my own, one stroke at a time.'],video:null},
-  {id:'singing',title:'Singing',caption:'That',crop:[351,697,262,209],colors:['#29232f','#9f4e39','#bba074'],lines:['For the things words alone can’t say.','Finding a little of myself in every note.','Some feelings come with a melody.'],video:null},
-  {id:'fashion',title:'Fashion',caption:'The Other Thing',crop:[631,702,269,212],colors:['#302c24','#787755','#ae6846'],lines:['A different kind of self-portrait.','Texture. Shape. A little personality.','Getting dressed, telling stories.'],video:null},
-  {id:'craft',title:'Art, craft & clay',caption:'Some Other Thing',crop:[908,704,277,209],colors:['#4c2923','#b06542','#b8996e'],lines:['Made slowly. Made by hand.','A little messy. A little magic.','Something from almost nothing.'],video:null},
-  {id:'brewing',title:'Brewing',caption:'One More Thing',crop:[1192,699,272,215],colors:['#252f28','#677158','#b79862'],lines:['Good things take their own sweet time.','A little ritual. A little curiosity.','Let’s see what’s brewing.'],video:null}
-];
+// Hemangi's picture house. Content (reel titles, taglines and the media shown on the screen)
+// lives in content.json and is edited through /admin. Reel ids map to the tin art in assets/.
+
+const FALLBACK = {
+  site: { name: 'Hemangi', tagline: 'a collection of things I make, do & obsess over', about: '', email: '', links: [] },
+  reels: [
+    { id: 'singing', act: 'Prequel', title: 'Singing', tagline: '', items: [] },
+    { id: 'painting', act: 'Act 1', title: 'Painting', tagline: '', items: [] },
+    { id: 'craft', act: 'Act 2', title: 'Art, Craft & Clay', tagline: '', items: [] },
+    { id: 'fashion', act: 'Sequel', title: 'Fashion', tagline: '', items: [] },
+    { id: 'brewing', act: 'The Spin-off', title: 'Brewing', tagline: '', items: [] }
+  ]
+};
+const reelArt = id => `assets/reel-${id}.webp`;
+
 const $ = id => document.getElementById(id);
-const cinema=$('cinema'), film=$('film'), welcome=$('welcome'), countdown=$('countdown'), projector=$('projector');
-let active=null, pending=null, playing=false, elapsed=0, loadVersion=0, last=0, drag=null, suppressClick=false, actualVideo=null;
-const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
-REELS.forEach((reel,i)=>{
-  const button=document.createElement('button');button.className='reel';button.dataset.id=reel.id;
-  button.setAttribute('aria-label',`${reel.title}: drag to the projector or click to play`);button.setAttribute('aria-pressed','false');
-  const [x,y,w,h]=reel.crop;
-  button.innerHTML=`<span class="reel-picture"><svg viewBox="${x} ${y} ${w} ${h}" aria-hidden="true"><image href="assets/reference.jpeg" width="1536" height="1024"/></svg></span><span class="reel-badge">NOW PLAYING</span>`;
-  button.addEventListener('click',()=>{if(!suppressClick)loadReel(reel.id)});
-  button.addEventListener('pointerdown',e=>beginDrag(e,button,reel));
-  $('reels').append(button);
+const cinema = $('cinema'), stage = $('stage'), screen = $('screen'), projector = $('projector'), shelf = $('shelf');
+const scenes = { welcome: $('welcome'), leader: $('leader'), titlecard: $('titlecard'), player: $('player') };
+const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const wait = ms => new Promise(r => setTimeout(r, reduced ? Math.min(ms, 60) : ms));
+
+let content = FALLBACK;
+let active = null;      // reel currently on the projector
+let index = 0;          // item index within the active reel
+let run = 0;            // bumps on every load/eject so stale async steps bail out
+let drag = null, suppressClick = false, idleTimer = 0, previewing = false;
+
+// ---------- sizing: --u is 1% of the rendered stage width ----------
+new ResizeObserver(() => {
+  stage.style.setProperty('--u', stage.getBoundingClientRect().width / 100 + 'px');
+  cinema.style.setProperty('--u', cinema.getBoundingClientRect().width / 100 + 'px');
+}).observe(stage);
+
+// ---------- content ----------
+async function loadContent() {
+  if (new URLSearchParams(location.search).has('preview')) {
+    // Admin preview: the admin page posts the draft (including not-yet-uploaded files as blob URLs).
+    window.addEventListener('message', e => {
+      if (e.origin !== location.origin || e.data?.type !== 'hp-preview') return;
+      previewing = true;
+      content = normalise(e.data.content);
+      applyContent();
+      const again = active && content.reels.find(r => r.id === active.id);
+      if (again) {
+        const hadNone = !active.items.length;
+        active = again; index = Math.min(index, Math.max(0, active.items.length - 1));
+        if (!scenes.player.hidden) { if (active.items.length) showItem(index); else play(active.id); }
+        else if (hadNone && active.items.length && !scenes.titlecard.hidden) play(active.id);
+      }
+    });
+    window.parent?.postMessage({ type: 'hp-preview-ready' }, location.origin);
+  }
+  try {
+    const res = await fetch('content.json', { cache: 'no-cache' });
+    if (res.ok && !previewing) content = normalise(await res.json());
+    else if (previewing) return;
+  } catch { /* offline or file:// — keep fallback */ }
+  applyContent();
+}
+function normalise(c) {
+  const byId = Object.fromEntries((c?.reels || []).map(r => [r.id, r]));
+  return {
+    site: { ...FALLBACK.site, ...(c?.site || {}) },
+    reels: FALLBACK.reels.map(base => ({ ...base, ...(byId[base.id] || {}), items: (byId[base.id]?.items || []).filter(i => i && i.src) }))
+  };
+}
+const touchLayout = matchMedia('(max-aspect-ratio: 1/1)');
+function applyContent() {
+  const s = content.site;
+  $('welcome-cue').textContent = touchLayout.matches ? 'tap a reel below to start the show' : 'drag a reel onto the projector, or just click one';
+  $('welcome-tagline').textContent = s.tagline || '';
+  $('credits-name').textContent = s.name || 'Hemangi';
+  $('credits-about').textContent = s.about || '';
+  const list = $('credits-list'); list.replaceChildren();
+  content.reels.forEach(r => {
+    const dt = document.createElement('dt'); dt.textContent = r.act;
+    const dd = document.createElement('dd'); dd.textContent = r.title;
+    list.append(dt, dd);
+  });
+  const links = $('credits-links'); links.replaceChildren();
+  if (s.email) links.append(link(`mailto:${s.email}`, s.email));
+  (s.links || []).filter(l => l.url).forEach(l => links.append(link(l.url, l.label || l.url)));
+  buildShelf();
+}
+function link(href, text) {
+  const a = document.createElement('a'); a.href = href; a.textContent = text;
+  if (!href.startsWith('mailto:')) { a.target = '_blank'; a.rel = 'noopener'; }
+  return a;
+}
+
+// ---------- shelf ----------
+function buildShelf() {
+  shelf.replaceChildren();
+  content.reels.forEach(reel => {
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'reel'; b.dataset.id = reel.id;
+    b.setAttribute('aria-label', `${reel.act}: ${reel.title}. Drag to the projector or press to play.`);
+    b.innerHTML = `<img src="${reelArt(reel.id)}" alt="" draggable="false"><span class="reel-tag">now showing</span>`;
+    b.classList.toggle('on-projector', active?.id === reel.id);
+    b.addEventListener('click', () => { if (!suppressClick) play(reel.id, b); });
+    b.addEventListener('pointerdown', e => beginDrag(e, b, reel));
+    shelf.append(b);
+  });
+}
+
+// ---------- screen states ----------
+function show(name) { for (const [k, el] of Object.entries(scenes)) el.hidden = k !== name; }
+function hint(text) { $('hint').textContent = text; }
+function say(text) { $('status').textContent = text; }
+function setMode(mode) {
+  cinema.classList.toggle('is-loading', mode === 'loading');
+  cinema.classList.toggle('is-running', mode === 'loading' || mode === 'running');
+}
+
+async function play(id, fromEl) {
+  const reel = content.reels.find(r => r.id === id);
+  if (!reel) return;
+  const my = ++run;
+  closeTheatre();
+  active = reel; index = 0;
+  shelf.querySelectorAll('.reel').forEach(b => b.classList.toggle('on-projector', b.dataset.id === id));
+  hint(`Threading ${reel.title.toLowerCase()}…`); say(`Loading ${reel.act}, ${reel.title}.`);
+  if (fromEl) await flyToProjector(fromEl);
+  if (my !== run) return;
+
+  setMode('loading'); sound.start();
+  show('leader');
+  for (const n of [3, 2, 1]) { $('leader-num').textContent = n; await wait(800); if (my !== run) return; }
+
+  $('tc-act').textContent = reel.act;
+  $('tc-title').textContent = reel.title;
+  $('tc-tagline').textContent = reel.tagline || '';
+  $('tc-note').hidden = reel.items.length > 0;
+  show('titlecard'); setMode('running'); sound.stop(1.5);
+  hint(`Now showing: ${reel.title}`);
+  if (!reel.items.length) { hint(`${reel.title} is coming soon. Try another reel.`); say(`${reel.title} has nothing on it yet.`); return; }
+  await wait(2200); if (my !== run) return;
+
+  show('player');
+  $('player-reel').textContent = `${reel.act} · ${reel.title}`;
+  showItem(0);
+  say(`${reel.title} is playing. ${reel.items.length} pieces.`);
+}
+
+function eject() {
+  run++; sound.stop(.2); closeTheatre();
+  const was = active; active = null;
+  scenes.player.querySelector('.slide-holder').replaceChildren();
+  show('welcome'); setMode('idle');
+  shelf.querySelectorAll('.reel').forEach(b => b.classList.remove('on-projector'));
+  hint('Pick a reel. Drag it to the projector.');
+  if (was) { say('Reel ejected.'); shelf.querySelector(`[data-id="${was.id}"]`)?.focus(); }
+}
+
+// ---------- player ----------
+function embedUrl(url) {
+  try {
+    const u = new URL(url, location.href), h = u.hostname.replace(/^www\.|^m\./, '');
+    if (h === 'youtu.be') return `https://www.youtube-nocookie.com/embed/${u.pathname.slice(1)}?rel=0`;
+    if (h.endsWith('youtube.com')) {
+      const id = u.searchParams.get('v') || u.pathname.match(/\/(?:shorts|embed|live)\/([\w-]+)/)?.[1];
+      if (id) return `https://www.youtube-nocookie.com/embed/${id}?rel=0`;
+    }
+    if (h === 'vimeo.com') { const id = u.pathname.match(/\/(\d+)/)?.[1]; if (id) return `https://player.vimeo.com/video/${id}`; }
+    if (h === 'soundcloud.com') return `https://w.soundcloud.com/player/?url=${encodeURIComponent(url)}&visual=true&color=%23f2b705`;
+    if (h === 'open.spotify.com' && !u.pathname.startsWith('/embed')) return `https://open.spotify.com/embed${u.pathname}`;
+    if (h === 'instagram.com') { const m = u.pathname.match(/\/(p|reel)\/([\w-]+)/); if (m) return `https://www.instagram.com/${m[1]}/${m[2]}/embed`; }
+    return u.href;
+  } catch { return url; }
+}
+
+function renderItem(item) {
+  const slide = document.createElement('div');
+  slide.className = 'slide';
+  const alt = item.caption || `${active.title} piece`;
+  if (item.type === 'video') {
+    const v = document.createElement('video');
+    v.src = item.src; v.controls = true; v.playsInline = true; v.preload = 'metadata';
+    if (item.poster) v.poster = item.poster;
+    v.addEventListener('play', () => sound.stop(.2));
+    slide.append(v);
+  } else if (item.type === 'audio') {
+    slide.classList.add('audio');
+    const art = document.createElement('img'); art.src = reelArt(active.id); art.alt = '';
+    const a = document.createElement('audio'); a.src = item.src; a.controls = true; a.preload = 'metadata';
+    slide.append(art, a);
+  } else if (item.type === 'embed') {
+    const f = document.createElement('iframe');
+    f.src = embedUrl(item.src); f.title = alt; f.loading = 'lazy';
+    f.allow = 'autoplay; encrypted-media; fullscreen; picture-in-picture';
+    f.allowFullscreen = true;
+    slide.append(f);
+  } else {
+    const img = document.createElement('img'); img.src = item.src; img.alt = alt; img.decoding = 'async';
+    slide.append(img);
+  }
+  return slide;
+}
+
+function showItem(i) {
+  if (!active || !active.items.length) return;
+  index = (i + active.items.length) % active.items.length;
+  const item = active.items[index];
+  const holder = $('slide-holder');
+  holder.querySelectorAll('video, audio').forEach(m => m.pause());
+  holder.replaceChildren(renderItem(item));
+  $('caption').textContent = item.caption || '';
+  $('player-count').textContent = `${String(index + 1).padStart(2, '0')} / ${String(active.items.length).padStart(2, '0')}`;
+  const many = active.items.length > 1;
+  $('btn-prev').disabled = !many; $('btn-next').disabled = !many;
+  // preload the next image so paging feels instant
+  const next = active.items[(index + 1) % active.items.length];
+  if (next?.type === 'image') new Image().src = next.src;
+  wake();
+}
+
+// Fade the player chrome away after a few idle seconds so the work gets the whole screen.
+function wake() {
+  scenes.player.classList.remove('idle');
+  clearTimeout(idleTimer);
+  idleTimer = setTimeout(() => scenes.player.classList.add('idle'), 3200);
+}
+['pointermove', 'pointerdown', 'focusin'].forEach(t => scenes.player.addEventListener(t, wake));
+
+$('btn-prev').addEventListener('click', () => showItem(index - 1));
+$('btn-next').addEventListener('click', () => showItem(index + 1));
+$('btn-eject').addEventListener('click', eject);
+$('btn-theatre').addEventListener('click', () => screen.classList.contains('theatre') ? closeTheatre() : openTheatre());
+function openTheatre() {
+  screen.classList.add('theatre'); document.body.classList.add('theatre-open');
+  $('btn-theatre').querySelector('.chip-label').textContent = 'Close';
+  $('btn-theatre').setAttribute('aria-label', 'Leave theatre mode');
+}
+function closeTheatre() {
+  screen.classList.remove('theatre'); document.body.classList.remove('theatre-open');
+  $('btn-theatre').querySelector('.chip-label').textContent = 'Theatre';
+  $('btn-theatre').setAttribute('aria-label', 'Theatre mode');
+}
+
+// swipe between pieces on touch screens
+let swipe = null;
+$('slide-holder').addEventListener('pointerdown', e => { if (e.pointerType !== 'mouse') swipe = { x: e.clientX, y: e.clientY }; });
+$('slide-holder').addEventListener('pointerup', e => {
+  if (!swipe) return;
+  const dx = e.clientX - swipe.x, dy = e.clientY - swipe.y; swipe = null;
+  if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.5) showItem(index + (dx < 0 ? 1 : -1));
 });
-const announce=text=>{$('live-status').textContent=text;};
-function setInstruction(main,sub){$('instruction').textContent=main;$('secondary').textContent=sub;}
-function clearVideo(){if(actualVideo){actualVideo.pause();actualVideo.remove();actualVideo=null;}}
-function reset(){loadVersion++;clearVideo();active=null;pending=null;playing=false;elapsed=0;film.hidden=true;countdown.hidden=true;welcome.hidden=false;cinema.classList.remove('playing','loading','paused');projector.setAttribute('aria-label','Projector. Choose a reel to play.');document.querySelectorAll('.reel').forEach(b=>{b.classList.remove('active');b.setAttribute('aria-pressed','false')});setInstruction('Pick up a reel. Drag it to the projector.','or simply click one to play');announce('Reel ejected. Choose another film.');}
-async function loadReel(id){
-  const reel=REELS.find(r=>r.id===id);if(!reel)throw new Error('Unknown reel');
-  const version=++loadVersion;clearVideo();active=reel;pending=reel;playing=false;elapsed=0;welcome.hidden=true;film.hidden=true;countdown.hidden=false;
-  cinema.classList.remove('playing','paused');cinema.classList.add('loading');
-  document.querySelectorAll('.reel').forEach(b=>{const selected=b.dataset.id===id;b.classList.toggle('active',selected);b.setAttribute('aria-pressed',String(selected));});
-  setInstruction(`Threading ${reel.title.toLowerCase()}…`,'settle into your seat');announce(`Loading ${reel.title}.`);
-  for(const n of [3,2,1]){$('count-number').textContent=n;await new Promise(r=>setTimeout(r,reduced?90:550));if(version!==loadVersion)return;}
-  countdown.hidden=true;film.hidden=false;cinema.classList.remove('loading');cinema.classList.add('playing');pending=null;
-  $('film-number').textContent=`REEL 0${REELS.indexOf(reel)+1} / 05`;$('film-title').textContent=reel.title;$('film-line').textContent=reel.lines[0];
-  $('pause').textContent='Ⅱ';$('pause').setAttribute('aria-label','Pause preview');$('seek').value=0;$('time').textContent='0:00';
-  if(reel.video){actualVideo=document.createElement('video');actualVideo.src=reel.video;actualVideo.playsInline=true;actualVideo.style.cssText='position:absolute;inset:0;width:100%;height:100%;object-fit:contain;z-index:2;background:#16140e';film.insertBefore(actualVideo,film.firstChild);actualVideo.addEventListener('error',()=>{clearVideo();announce('This video could not be loaded. Showing the category preview instead.')});actualVideo.addEventListener('ended',()=>setPlaying(false));actualVideo.play().catch(()=>setPlaying(false));}
-  playing=true;setInstruction(`Now showing: ${reel.title}`,'pick another reel whenever curiosity strikes');projector.setAttribute('aria-label',`${reel.title} loaded. Drop another reel to switch films.`);announce(`${reel.title} is now playing.`);
+
+document.addEventListener('keydown', e => {
+  if (e.target.closest('input, textarea, iframe, dialog')) return;
+  if (e.key === 'Escape') { if (drag) cancelDrag(); else if (screen.classList.contains('theatre')) closeTheatre(); else if (active) eject(); }
+  if (!active || scenes.player.hidden) return;
+  if (e.key === 'ArrowRight') showItem(index + 1);
+  if (e.key === 'ArrowLeft') showItem(index - 1);
+  if (e.key === 'f' || e.key === 'F') screen.classList.contains('theatre') ? closeTheatre() : openTheatre();
+});
+
+projector.addEventListener('click', () => {
+  if (!active) { shelf.querySelector('.reel')?.focus(); hint('Choose a reel first, then it goes on here.'); }
+});
+
+// ---------- drag & drop ----------
+function beginDrag(e, el, reel) {
+  if (e.button !== 0 || drag) return;
+  drag = { id: e.pointerId, el, reel, sx: e.clientX, sy: e.clientY, moved: false, ghost: null };
+  el.setPointerCapture(e.pointerId);
 }
-function setPlaying(value){if(!active||pending)return;playing=value;cinema.classList.toggle('paused',!playing);$('pause').textContent=playing?'Ⅱ':'▶';$('pause').setAttribute('aria-label',playing?'Pause preview':'Play preview');if(actualVideo){if(playing)actualVideo.play().catch(()=>setPlaying(false));else actualVideo.pause();}}
-$('pause').addEventListener('click',()=>{if(elapsed>=24)elapsed=0;setPlaying(!playing)});
-$('eject').addEventListener('click',()=>{reset();$('reels').firstElementChild.focus()});$('home').addEventListener('click',reset);
-$('seek').addEventListener('input',e=>{elapsed=Number(e.target.value);if(actualVideo&&Number.isFinite(actualVideo.duration))actualVideo.currentTime=elapsed/24*actualVideo.duration;updateFrame();});
-projector.addEventListener('click',()=>{if(active&&!pending)setPlaying(!playing);else{$('reels').firstElementChild.focus();announce('Choose any of the five reels to start.')}});
-document.addEventListener('keydown',e=>{if(e.key==='Escape'){cancelDrag();reset();}if(e.code==='Space'&&active&&!pending&&e.target===document.body){e.preventDefault();setPlaying(!playing)}});
-function beginDrag(e,button,reel){if(e.button!==0||drag)return;drag={id:e.pointerId,button,reel,startX:e.clientX,startY:e.clientY,x:e.clientX,y:e.clientY,moved:false,ghost:null};button.setPointerCapture(e.pointerId);}
-function inProjector(x,y){const r=projector.getBoundingClientRect();return x>=r.left-12&&x<=r.right+12&&y>=r.top-12&&y<=r.bottom+12;}
-document.addEventListener('pointermove',e=>{if(!drag||e.pointerId!==drag.id)return;drag.x=e.clientX;drag.y=e.clientY;if(!drag.moved&&Math.hypot(e.clientX-drag.startX,e.clientY-drag.startY)>7){drag.moved=true;drag.ghost=drag.button.cloneNode(true);drag.ghost.className='reel drag-ghost';drag.ghost.removeAttribute('aria-pressed');drag.ghost.setAttribute('aria-hidden','true');drag.ghost.tabIndex=-1;drag.ghost.style.width=`${drag.button.getBoundingClientRect().width}px`;document.body.append(drag.ghost);drag.button.classList.add('in-hand');cinema.classList.add('dragging');setInstruction('Over here. Drop it on the projector.','release anywhere else to put it back');}if(drag.moved){drag.ghost.style.left=`${e.clientX}px`;drag.ghost.style.top=`${e.clientY}px`;projector.classList.toggle('over',inProjector(e.clientX,e.clientY));}});
-function cancelDrag(){if(!drag)return;drag.ghost?.remove();drag.button.classList.remove('in-hand');if(drag.button.hasPointerCapture(drag.id))drag.button.releasePointerCapture(drag.id);drag=null;cinema.classList.remove('dragging');projector.classList.remove('over');if(active)setInstruction(`Now showing: ${active.title}`,'pick another reel whenever curiosity strikes');else setInstruction('Pick up a reel. Drag it to the projector.','or simply click one to play');}
-document.addEventListener('pointerup',e=>{if(!drag||e.pointerId!==drag.id)return;const moved=drag.moved,id=drag.reel.id,accepted=moved&&inProjector(e.clientX,e.clientY);cancelDrag();if(moved){suppressClick=true;setTimeout(()=>suppressClick=false,0);if(accepted)loadReel(id);else announce('Reel returned to the shelf.')}});
-document.addEventListener('pointercancel',cancelDrag);window.addEventListener('blur',cancelDrag);
-const canvas=$('art'),ctx=canvas.getContext('2d');
-function drawArt(t){if(!active)return;const w=canvas.width,h=canvas.height;ctx.fillStyle=active.colors[0];ctx.fillRect(0,0,w,h);const type=REELS.indexOf(active);ctx.globalAlpha=.5;
-  if(type===1){for(let j=0;j<4;j++){ctx.beginPath();ctx.strokeStyle=active.colors[(j%2)+1];ctx.lineWidth=3+j*3;for(let x=0;x<w;x+=4){const y=h*.5+Math.sin(x*.012+t*1.3+j)*Math.sin(x/w*Math.PI)*h*(.16+j*.05);if(x===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);}ctx.stroke();}}
-  else if(type===2){for(let j=0;j<9;j++){ctx.save();ctx.translate(w*.5,h*.5);ctx.rotate(-.4+Math.sin(t*.2)*.12);ctx.fillStyle=active.colors[j%3];ctx.fillRect((j-4)*w*.19+Math.sin(t*.35)*50,-h,w*.115,h*3);ctx.restore();}}
-  else{for(let j=0;j<12;j++){const x=(Math.sin(j*2.3+t*.13)*.55+.5)*w,y=(Math.cos(j*1.7+t*.18)*.5+.5)*h,r=(type===4?.08:.2)*w;const g=ctx.createRadialGradient(x,y,0,x,y,r);g.addColorStop(0,active.colors[1+j%2]);g.addColorStop(1,active.colors[0]+'00');ctx.fillStyle=g;ctx.beginPath();ctx.ellipse(x,y,r,r*(type===3?.5:1),t*.1,0,Math.PI*2);ctx.fill();}}
-  ctx.globalAlpha=1;const shade=ctx.createLinearGradient(0,0,0,h);shade.addColorStop(0,'#00000020');shade.addColorStop(.5,'#00000000');shade.addColorStop(1,'#00000090');ctx.fillStyle=shade;ctx.fillRect(0,0,w,h);
+function overProjector(x, y) {
+  if (!projector.offsetParent) return false;
+  const r = projector.getBoundingClientRect(), pad = r.width * .15;
+  return x > r.left - pad && x < r.right + pad && y > r.top - pad && y < r.bottom + pad;
 }
-function updateFrame(){if(!active)return;$('seek').value=elapsed;$('time').textContent=`0:${String(Math.floor(elapsed)).padStart(2,'0')}`;$('film-line').textContent=active.lines[Math.min(2,Math.floor(elapsed/8))];drawArt(reduced?0:elapsed);}
-new ResizeObserver(()=>{const r=film.getBoundingClientRect();canvas.width=Math.max(600,r.width);canvas.height=Math.max(320,r.height);updateFrame()}).observe($('screen'));
-function tick(now){const dt=Math.min((now-last)/1000,.1);last=now;if(playing&&active&&!document.hidden){elapsed=actualVideo&&Number.isFinite(actualVideo.duration)?actualVideo.currentTime/actualVideo.duration*24:Math.min(24,elapsed+dt);if(elapsed>=24){setPlaying(false);setInstruction('That’s a wrap. What else shall we watch?','replay this film, or pick another reel');}updateFrame();}requestAnimationFrame(tick);}requestAnimationFrame(tick);
-if(document.modelContext?.registerTool){try{Promise.resolve(document.modelContext.registerTool({name:'play_creative_reel',description:'Load and play one of Hemangi’s five category reels in the cinema.',inputSchema:{type:'object',properties:{category:{type:'string',enum:REELS.map(r=>r.id)}},required:['category'],additionalProperties:false},annotations:{readOnlyHint:false,untrustedContentHint:false},execute:async input=>{if(!input||!REELS.some(r=>r.id===input.category))throw new Error('Choose a valid category');await loadReel(input.category);return {category:active.id,playing};}})).catch(()=>{});}catch{}}
+function makeGhost(el) {
+  const g = document.createElement('div'); g.className = 'drag-ghost'; g.setAttribute('aria-hidden', 'true');
+  g.innerHTML = `<img src="${el.querySelector('img').src}" alt="">`;
+  g.style.width = el.getBoundingClientRect().width + 'px';
+  document.body.append(g);
+  return g;
+}
+document.addEventListener('pointermove', e => {
+  if (!drag || e.pointerId !== drag.id) return;
+  if (!drag.moved && Math.hypot(e.clientX - drag.sx, e.clientY - drag.sy) > 8) {
+    drag.moved = true; drag.ghost = makeGhost(drag.el);
+    drag.el.classList.add('in-hand'); cinema.classList.add('is-dragging');
+    hint('Over to the projector…');
+  }
+  if (!drag.moved) return;
+  drag.ghost.style.left = e.clientX + 'px'; drag.ghost.style.top = e.clientY + 'px';
+  const over = overProjector(e.clientX, e.clientY);
+  projector.classList.toggle('over', over);
+  if (over) hint('Let go to load it!');
+});
+document.addEventListener('pointerup', e => {
+  if (!drag || e.pointerId !== drag.id) return;
+  const { moved, reel, ghost } = drag, hit = moved && overProjector(e.clientX, e.clientY);
+  drag.ghost = null; cancelDrag();
+  if (!moved) return;
+  suppressClick = true; setTimeout(() => suppressClick = false, 0);
+  if (hit) { mountGhost(ghost).then(() => play(reel.id)); }
+  else { ghost?.remove(); hint(active ? `Now showing: ${active.title}` : 'Pick a reel. Drag it to the projector.'); }
+});
+document.addEventListener('pointercancel', cancelDrag);
+window.addEventListener('blur', cancelDrag);
+function cancelDrag() {
+  if (!drag) return;
+  drag.ghost?.remove();
+  drag.el.classList.remove('in-hand');
+  if (drag.el.hasPointerCapture?.(drag.id)) drag.el.releasePointerCapture(drag.id);
+  drag = null;
+  cinema.classList.remove('is-dragging'); projector.classList.remove('over');
+}
+
+// The spindle on the projector's reel arm, as a fraction of the camera art.
+function spindle() {
+  const r = projector.getBoundingClientRect();
+  return { x: r.left + r.width * .64, y: r.top + r.height * .23 };
+}
+function mountGhost(g) {
+  if (!g) return Promise.resolve();
+  if (reduced || !projector.offsetParent) { g.remove(); return Promise.resolve(); }
+  const p = spindle();
+  g.classList.add('flying');
+  requestAnimationFrame(() => { g.style.left = p.x + 'px'; g.style.top = p.y + 'px'; g.style.scale = '.35'; g.style.rotate = '180deg'; g.style.opacity = '0'; });
+  return new Promise(r => setTimeout(() => { g.remove(); r(); }, 560));
+}
+function flyToProjector(el) {
+  if (reduced || !projector.offsetParent) return Promise.resolve();
+  const r = el.getBoundingClientRect(), g = makeGhost(el);
+  g.style.left = r.left + r.width / 2 + 'px'; g.style.top = r.top + r.height / 2 + 'px';
+  return new Promise(res => requestAnimationFrame(() => requestAnimationFrame(() => mountGhost(g).then(res))));
+}
+
+// ---------- projector sound: a soft 24fps clatter synthesised on the fly ----------
+const sound = (() => {
+  let ctx = null, node = null, gain = null;
+  let on = true;
+  try { on = localStorage.getItem('hp-sound') !== 'off'; } catch {}
+  const btn = $('btn-sound');
+  const render = () => { btn.setAttribute('aria-pressed', String(on)); $('sound-label').textContent = on ? 'Sound on' : 'Sound off'; };
+  render();
+  btn.addEventListener('click', () => {
+    on = !on; render();
+    try { localStorage.setItem('hp-sound', on ? 'on' : 'off'); } catch {}
+    if (!on) api.stop(.1);
+  });
+  const api = {
+    start() {
+      if (!on || reduced) return;
+      try {
+        ctx ??= new (window.AudioContext || window.webkitAudioContext)();
+        ctx.resume();
+        api.stop(0);
+        const len = ctx.sampleRate * 2, buf = ctx.createBuffer(1, len, ctx.sampleRate), d = buf.getChannelData(0);
+        const period = ctx.sampleRate / 24;
+        for (let i = 0; i < len; i++) {
+          const t = (i % period) / period;
+          d[i] = (Math.random() * 2 - 1) * (Math.exp(-t * 28) * .9 + .06);
+        }
+        node = ctx.createBufferSource(); node.buffer = buf; node.loop = true;
+        const f = ctx.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = 1400; f.Q.value = .8;
+        gain = ctx.createGain(); gain.gain.value = 0;
+        gain.gain.linearRampToValueAtTime(.09, ctx.currentTime + .4);
+        node.connect(f).connect(gain).connect(ctx.destination); node.start();
+      } catch {}
+    },
+    stop(fade = .6) {
+      if (!node || !ctx) return;
+      const n = node, g = gain; node = null;
+      g.gain.cancelScheduledValues(ctx.currentTime);
+      g.gain.setValueAtTime(g.gain.value, ctx.currentTime);
+      g.gain.linearRampToValueAtTime(0, ctx.currentTime + fade);
+      setTimeout(() => { try { n.stop(); } catch {} }, fade * 1000 + 50);
+    }
+  };
+  return api;
+})();
+
+// ---------- credits ----------
+$('btn-credits').addEventListener('click', () => $('credits').showModal());
+$('credits').addEventListener('click', e => { if (e.target === $('credits')) $('credits').close(); });
+
+loadContent();

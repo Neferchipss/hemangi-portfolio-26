@@ -1,0 +1,48 @@
+{
+  "site": {
+    "name": "Hemangi",
+    "tagline": "a collection of things I make, do & obsess over",
+    "about": "Singer, painter, maker of small clay things, occasional fashion experiment and full-time brewer of curious concoctions. Pick a reel and see which version of me is playing today.",
+    "email": "",
+    "links": [
+      { "label": "Instagram", "url": "" }
+    ]
+  },
+  "reels": [
+    {
+      "id": "singing",
+      "act": "Prequel",
+      "title": "Singing",
+      "tagline": "For the things words alone can't say.",
+      "items": []
+    },
+    {
+      "id": "painting",
+      "act": "Act 1",
+      "title": "Painting",
+      "tagline": "A world of my own, one stroke at a time.",
+      "items": []
+    },
+    {
+      "id": "craft",
+      "act": "Act 2",
+      "title": "Art, Craft & Clay",
+      "tagline": "Made slowly. Made by hand. A little messy, a little magic.",
+      "items": []
+    },
+    {
+      "id": "fashion",
+      "act": "Sequel",
+      "title": "Fashion",
+      "tagline": "A different kind of self-portrait.",
+      "items": []
+    },
+    {
+      "id": "brewing",
+      "act": "The Spin-off",
+      "title": "Brewing",
+      "tagline": "Good things take their own sweet time.",
+      "items": []
+    }
+  ]
+}

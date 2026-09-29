@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Projection Booth · Admin</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Ccircle cx='20' cy='20' r='19' fill='%23140d0a'/%3E%3Ccircle cx='20' cy='20' r='15' fill='%23f2b705'/%3E%3Cg fill='%23140d0a'%3E%3Ccircle cx='20' cy='11' r='4'/%3E%3Ccircle cx='12' cy='24' r='4'/%3E%3Ccircle cx='28' cy='24' r='4'/%3E%3Ccircle cx='20' cy='20' r='2'/%3E%3C/g%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Special+Elite&family=Yellowtail&family=Inter:wght@400;500;600&display=swap">
+  <link rel="stylesheet" href="admin.css">
+  <script src="admin.js" defer></script>
+</head>
+<body>
+  <header class="bar">
+    <div class="brand"><span class="script">Projection Booth</span><span class="sub">edit what plays on the screen</span></div>
+    <div class="bar-actions">
+      <span class="status" id="status"></span>
+      <button class="btn ghost" id="btn-preview" type="button" hidden>Preview</button>
+      <a class="btn ghost" href="../" target="_blank" rel="noopener">View site ↗</a>
+      <button class="btn primary" id="btn-publish" type="button" hidden disabled>Publish</button>
+    </div>
+  </header>
+
+  <!-- Step 1: connect to GitHub -->
+  <section class="connect" id="connect" hidden>
+    <div class="card">
+      <h1>Unlock the booth</h1>
+      <p>Changes are saved straight to the website's GitHub repository, and the site updates itself a minute or so later. You need a GitHub access token for that. It stays on this device only.</p>
+      <form id="connect-form" autocomplete="off">
+        <label>Repository <small>owner/name</small><input id="f-repo" required spellcheck="false"></label>
+        <div class="row">
+          <label>Branch<input id="f-branch" required value="main" spellcheck="false"></label>
+          <label>Site folder<input id="f-folder" required value="dist" spellcheck="false"></label>
+        </div>
+        <label>Access token<input id="f-token" type="password" required placeholder="github_pat_…" spellcheck="false"></label>
+        <label class="check"><input type="checkbox" id="f-remember" checked> Remember on this device</label>
+        <p class="error" id="connect-error" hidden></p>
+        <button class="btn primary wide" type="submit">Connect</button>
+      </form>
+      <details class="help">
+        <summary>How do I get a token?</summary>
+        <ol>
+          <li>Open <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">GitHub → Settings → Fine-grained tokens → Generate new token</a>.</li>
+          <li>Name it something like <em>Portfolio admin</em> and pick an expiry.</li>
+          <li>Under <strong>Repository access</strong>, choose <em>Only select repositories</em> and pick this site's repository.</li>
+          <li>Under <strong>Permissions → Repository permissions</strong> set <strong>Contents</strong> to <em>Read and write</em>. Optionally set <strong>Actions</strong> to <em>Read-only</em> so the booth can tell you when the site is live.</li>
+          <li>Generate, copy the token and paste it above.</li>
+        </ol>
+      </details>
+    </div>
+  </section>
+
+  <!-- Step 2: edit -->
+  <div class="workspace" id="workspace" hidden>
+    <nav class="tabs" id="tabs" aria-label="Sections"></nav>
+    <main class="editor" id="editor"></main>
+    <aside class="preview" id="preview-pane" hidden>
+      <div class="preview-head"><span>Live preview <small>(unpublished draft)</small></span><button class="btn ghost small" id="btn-preview-close" type="button">Close</button></div>
+      <iframe id="preview-frame" title="Draft preview"></iframe>
+    </aside>
+  </div>
+
+  <dialog class="modal" id="link-dialog">
+    <form method="dialog" id="link-form">
+      <h2>Add a link</h2>
+      <p>YouTube, Vimeo, SoundCloud, Spotify or Instagram links play right on the screen. You can also paste a direct link to an image, video or audio file.</p>
+      <label>Link<input id="link-url" type="url" required placeholder="https://youtu.be/…"></label>
+      <label>Caption <small>optional</small><input id="link-caption" maxlength="200"></label>
+      <div class="modal-actions"><button class="btn ghost" value="cancel" formnovalidate>Cancel</button><button class="btn primary" value="ok">Add to reel</button></div>
+    </form>
+  </dialog>
+
+  <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+</body>
+</html>

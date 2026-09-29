@@ -2,40 +2,108 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#8f2922">
-  <meta name="description" content="A collection of things I make, do and obsess over. Pick a reel and step into my little cinema.">
-  <title>So, I like This & That — Hemangi</title>
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='8' fill='%238f2922'/%3E%3Ccircle cx='20' cy='20' r='15' fill='%23e9d5a3'/%3E%3Cg fill='%23231e17'%3E%3Ccircle cx='20' cy='11' r='4'/%3E%3Ccircle cx='12' cy='24' r='4'/%3E%3Ccircle cx='28' cy='24' r='4'/%3E%3Ccircle cx='20' cy='20' r='2'/%3E%3C/g%3E%3C/svg%3E">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#1a0605">
+  <meta name="description" content="An Unpredictable Person: Hemangi's little picture house. Pick a reel, load the projector, and see which side of her is showing today.">
+  <meta property="og:title" content="An Unpredictable Person · Hemangi">
+  <meta property="og:description" content="Singing, painting, art, craft & clay, fashion and brewing. Pick a reel and step into the cinema.">
+  <meta property="og:image" content="assets/title.webp">
+  <title>An Unpredictable Person · Hemangi</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Ccircle cx='20' cy='20' r='19' fill='%23140d0a'/%3E%3Ccircle cx='20' cy='20' r='15' fill='%23f2b705'/%3E%3Cg fill='%23140d0a'%3E%3Ccircle cx='20' cy='11' r='4'/%3E%3Ccircle cx='12' cy='24' r='4'/%3E%3Ccircle cx='28' cy='24' r='4'/%3E%3Ccircle cx='20' cy='20' r='2'/%3E%3C/g%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Special+Elite&family=Yellowtail&display=swap">
+  <link rel="preload" as="image" href="assets/bg.webp">
+  <link rel="preload" as="image" href="assets/bg-front.webp">
   <link rel="stylesheet" href="style.css">
   <script src="app.js" defer></script>
 </head>
 <body>
-  <main class="cinema" id="cinema" aria-label="Hemangi's interactive cinema portfolio">
-    <div class="room-shade" aria-hidden="true"></div>
-    <header class="masthead"><span>HEMANGI'S LITTLE CINEMA</span><button id="home" aria-label="Return to the opening screen">BACK TO THE LOBBY <span aria-hidden="true">↗</span></button></header>
-    <section class="screen" id="screen" aria-label="Cinema screen">
-      <div class="welcome" id="welcome">
-        <span class="eyebrow">A PERSONAL PICTURE HOUSE</span>
-        <h1>So, I like<br><span>This & That</span></h1>
-        <p>a collection of things I make, do & obsess over</p>
-        <div class="star" aria-hidden="true">— ★ —</div>
-        <span class="now-showing">NOW SHOWING: A LITTLE BIT OF EVERYTHING</span>
+  <main class="cinema" id="cinema" aria-label="Hemangi's cinema portfolio">
+    <div class="stage-wrap">
+      <div class="stage" id="stage">
+        <img class="layer" src="assets/bg.webp" alt="" width="1670" height="942" decoding="async">
+
+        <section class="screen" id="screen" aria-label="Cinema screen" aria-live="polite">
+          <div class="scene welcome" id="welcome">
+            <img class="title-art" src="assets/title.webp" alt="An Unpredictable Person" width="1688" height="879">
+            <p class="welcome-tagline" id="welcome-tagline">a collection of things I make, do &amp; obsess over</p>
+            <p class="welcome-cue"><span aria-hidden="true">✦</span> <span id="welcome-cue">drag a reel onto the projector, or just click one</span> <span aria-hidden="true">✦</span></p>
+          </div>
+
+          <div class="scene leader" id="leader" hidden aria-hidden="true">
+            <div class="leader-dial"><span id="leader-num">3</span></div>
+          </div>
+
+          <div class="scene titlecard" id="titlecard" hidden>
+            <span class="tc-act" id="tc-act"></span>
+            <h2 class="tc-title" id="tc-title"></h2>
+            <p class="tc-tagline" id="tc-tagline"></p>
+            <p class="tc-note" id="tc-note" hidden>This reel is still being spliced together. Check back soon.</p>
+          </div>
+
+          <div class="scene player" id="player" hidden>
+            <div class="slide-holder" id="slide-holder"></div>
+            <div class="player-top">
+              <span class="player-reel" id="player-reel"></span>
+              <span class="player-count" id="player-count"></span>
+              <span class="spacer"></span>
+              <button class="chip" id="btn-theatre" type="button" aria-label="Theatre mode"><span aria-hidden="true">⤢</span><span class="chip-label">Theatre</span></button>
+              <button class="chip" id="btn-eject" type="button" aria-label="Eject reel"><span aria-hidden="true">⏏</span><span class="chip-label">Eject</span></button>
+            </div>
+            <button class="nav prev" id="btn-prev" type="button" aria-label="Previous">‹</button>
+            <button class="nav next" id="btn-next" type="button" aria-label="Next">›</button>
+            <p class="caption" id="caption"></p>
+          </div>
+
+          <div class="screen-fx" aria-hidden="true"></div>
+        </section>
+
+        <img class="layer front" src="assets/bg-front.webp" alt="" width="1670" height="942" decoding="async">
+
+        <svg class="beam" viewBox="0 0 1670 942" preserveAspectRatio="none" aria-hidden="true">
+          <defs>
+            <linearGradient id="beam-grad" gradientUnits="userSpaceOnUse" x1="1310" y1="782" x2="600" y2="360">
+              <stop offset="0" stop-color="#fff6d0" stop-opacity=".55"/>
+              <stop offset=".55" stop-color="#ffe9a8" stop-opacity=".16"/>
+              <stop offset="1" stop-color="#ffe9a8" stop-opacity="0"/>
+            </linearGradient>
+            <filter id="beam-blur"><feGaussianBlur stdDeviation="6"/></filter>
+          </defs>
+          <polygon points="1310,748 1064,122 168,122 168,600 1310,815" fill="url(#beam-grad)" filter="url(#beam-blur)"/>
+        </svg>
+
+        <button class="projector" id="projector" type="button" aria-label="Projector. Drop or choose a reel to play it.">
+          <img src="assets/camera.webp" alt="" width="986" height="1165" draggable="false">
+          <span class="lens-glow" aria-hidden="true"></span>
+          <span class="drop-tag" aria-hidden="true">drop a reel here</span>
+        </button>
       </div>
-      <div class="film" id="film" hidden>
-        <canvas id="art" aria-hidden="true"></canvas>
-        <div class="film-content"><span id="film-number" class="eyebrow"></span><h2 id="film-title"></h2><p id="film-line"></p><span class="sample-label">A LITTLE PREVIEW · THE REAL FILM IS COMING</span></div>
-        <div class="film-perfs top" aria-hidden="true"></div><div class="film-perfs bottom" aria-hidden="true"></div>
-        <div class="transport"><button id="pause" aria-label="Pause preview">Ⅱ</button><span id="time">0:00</span><input id="seek" type="range" min="0" max="24" value="0" step="0.1" aria-label="Preview progress"><span>0:24</span><button id="eject" aria-label="Eject reel">⏏ <span>EJECT</span></button></div>
+    </div>
+
+    <header class="topbar">
+      <span class="marquee">Hemangi's Picture House</span>
+      <p class="hint" id="hint">Pick a reel. Drag it to the projector.</p>
+      <div class="top-actions">
+        <button class="chip ghost" id="btn-sound" type="button" aria-pressed="true" aria-label="Projector sound">♪ <span class="chip-label" id="sound-label">Sound on</span></button>
+        <button class="chip ghost" id="btn-credits" type="button">Credits</button>
       </div>
-      <div class="countdown" id="countdown" hidden><span id="count-number">3</span><small>THREADING YOUR REEL</small></div>
-      <div class="screen-grain" aria-hidden="true"></div>
-    </section>
-    <button class="projector" id="projector" aria-label="Projector. Select a reel, then activate to load it." aria-describedby="instruction"><span class="drop-ring" aria-hidden="true">+</span><span class="projector-label">DROP A REEL HERE</span></button>
-    <div class="beam" aria-hidden="true"></div>
-    <section class="reel-shelf" aria-label="Choose a creative category" id="reels"></section>
-    <footer><p id="instruction">Pick up a reel. Drag it to the projector.</p><span class="secondary" id="secondary">or simply click one to play</span><span class="flourish" aria-hidden="true">──── ✧ ────</span></footer>
-    <div class="live-status" id="live-status" role="status" aria-live="polite"></div>
+    </header>
+
+    <nav class="shelf" id="shelf" aria-label="Choose a reel"></nav>
   </main>
+
+  <dialog class="credits" id="credits" aria-labelledby="credits-title">
+    <div class="credits-roll">
+      <p class="credits-kicker">The end credits</p>
+      <h2 id="credits-title">Starring <span id="credits-name">Hemangi</span></h2>
+      <p class="credits-about" id="credits-about"></p>
+      <dl class="credits-list" id="credits-list"></dl>
+      <div class="credits-links" id="credits-links"></div>
+      <form method="dialog"><button class="chip" type="submit">Back to the show</button></form>
+    </div>
+  </dialog>
+
+  <div class="sr-only" id="status" role="status" aria-live="polite"></div>
 </body>
 </html>
