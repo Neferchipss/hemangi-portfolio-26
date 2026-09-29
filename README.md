@@ -12,7 +12,7 @@ Open `https://<site>/admin/` (for example `https://neferchipss.github.io/hemangi
 
 1. Create a fine-grained GitHub token limited to this repository, with **Contents: Read and write** (and optionally **Actions: Read-only**, so the booth can say when the site is live). The booth's "How do I get a token?" section walks through it.
 2. Paste it once. It is saved only in that browser.
-3. For each reel you can edit the act label, the title and the title-card tagline, and add photos, videos, audio or links (YouTube, Vimeo, SoundCloud, Spotify or Instagram). Add captions and drag to reorder. The *Site & credits* tab holds the welcome line, bio, email and social links.
+3. For each reel you can edit the act label, the title and the title-card tagline, and add photos, videos, audio or links (YouTube, Vimeo, SoundCloud, Spotify or Instagram). Add captions and drag to reorder. The *Site & credits* tab holds the bio, email and social links.
 4. **Preview** shows the unpublished draft in the real site. **Publish** makes one commit to `main` with `dist/content.json` and any new files under `dist/media/`. It also removes media that no reel uses any more. The Pages workflow redeploys in about a minute.
 
 Large photos are resized in the browser (2400 px, WebP) before upload. GitHub refuses files over 100 MB, so long videos are better hosted on YouTube or Vimeo and added as links.

@@ -203,10 +203,9 @@ function renderSite(ed) {
   drawLinks();
   ed.append(
     h('h2', {}, 'Site & credits'),
-    h('p', { class: 'lede' }, 'The line under the title on the welcome screen, and the “Credits” card with a little about-me and contact links.'),
+    h('p', { class: 'lede' }, 'Edit the “Credits” card with a little about-me and contact links.'),
     h('div', { class: 'fields' },
       field('Name', s.name, v => s.name = v),
-      field('Welcome line', s.tagline, v => s.tagline = v, { placeholder: 'a collection of things I make, do & obsess over' }),
       field('About (shown in the credits)', s.about, v => s.about = v, { multiline: true, cls: 'full' }),
       field('Email', s.email, v => s.email = v, { type: 'email', cls: 'full', placeholder: 'hello@example.com' })
     ),

@@ -65,11 +65,8 @@ function normalise(c) {
     reels: FALLBACK.reels.map(base => ({ ...base, ...(byId[base.id] || {}), items: (byId[base.id]?.items || []).filter(i => i && i.src) }))
   };
 }
-const touchLayout = matchMedia('(max-aspect-ratio: 1/1)');
 function applyContent() {
   const s = content.site;
-  $('welcome-cue').textContent = touchLayout.matches ? 'tap a reel below to start the show' : 'drag a reel onto the projector, or just click one';
-  $('welcome-tagline').textContent = s.tagline || '';
   $('credits-name').textContent = s.name || 'Hemangi';
   $('credits-about').textContent = s.about || '';
   const list = $('credits-list'); list.replaceChildren();
