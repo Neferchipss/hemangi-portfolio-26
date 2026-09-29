@@ -22,7 +22,9 @@ body {
   font-family: var(--type);
   color: var(--cream);
   background:
-    radial-gradient(ellipse 80% 70% at 50% 45%, #3b0b08 0%, #1a0605 55%, #070202 100%);
+    linear-gradient(#210704a8, #210704a8),
+    url('assets/bg.webp') center / cover no-repeat,
+    #3b0b08;
   min-height: 100svh;
   display: grid;
   place-items: center;
@@ -37,8 +39,8 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 /* ---------- frame ---------- */
 .cinema {
   position: relative;
-  width: min(100vw, calc(100svh * 1670 / 942));
-  aspect-ratio: 1670 / 942;
+  width: min(100vw, calc(100svh * 16 / 9));
+  aspect-ratio: 16 / 9;
   isolation: isolate;
   box-shadow: 0 0 120px #000c, 0 0 0 1px #0008;
   user-select: none;
