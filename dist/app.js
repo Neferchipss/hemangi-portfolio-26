@@ -254,7 +254,10 @@ document.addEventListener('keydown', e => {
 });
 
 projector.addEventListener('click', () => {
-  if (!active) { shelf.querySelector('.reel')?.focus(); hint('Choose a reel first, then it goes on here.'); }
+  if (!active) {
+    hint('Choose a reel first, then it goes on here.');
+    say('Choose one of the reels below to load the projector.');
+  }
 });
 
 // ---------- drag & drop ----------

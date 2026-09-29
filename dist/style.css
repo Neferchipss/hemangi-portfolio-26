@@ -56,6 +56,13 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 }
 .layer { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
 .front { z-index: 3; }
+.bottom-ribbon {
+  position: absolute; z-index: 4; left: 0; right: 0; bottom: 0; height: 15%;
+  pointer-events: none;
+  background: linear-gradient(180deg, #b5161040 0%, #b51610a8 24%, #8d0d0bd9 100%);
+  border-top: 1px solid #f178594d;
+  box-shadow: inset 0 calc(var(--u) * .35) calc(var(--u) * 1.3) #47070466;
+}
 
 /* dim the house lights while a reel plays */
 .stage::after {
@@ -202,7 +209,7 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .is-running .beam { opacity: 1; animation: beam 3s ease-in-out infinite, flicker .1s steps(2) infinite; }
 .projector {
   position: absolute; z-index: 6;
-  left: 74%; top: 32.8%; width: 26%;
+  left: 70%; top: 34.2%; width: 24%;
   transition: filter .25s;
   touch-action: none;
 }
@@ -340,6 +347,7 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   .stage-wrap { position: relative; inset: auto; height: 60vw; margin-top: 56px; }
   .stage { left: -9.7vw; top: -4.5vw; width: 161vw; height: auto; aspect-ratio: 1670 / 942; transform: none; }
   .projector, .beam, .drop-tag { display: none; }
+  .bottom-ribbon { display: none; }
   .topbar { position: absolute; grid-template-columns: 1fr auto; padding: 14px 16px; font-size: 11px; }
   .topbar .chip { font-size: 11px; }
   .topbar .hint { grid-column: 1 / -1; grid-row: 3; justify-self: center; }
