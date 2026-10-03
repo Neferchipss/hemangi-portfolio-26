@@ -16,6 +16,9 @@ const MAX_FILE = 95 * 1024 * 1024;   // GitHub rejects files over 100 MB
 const WARN_FILE = 40 * 1024 * 1024;
 const VIDEO_TARGET = 45 * 1024 * 1024;   // videos bigger than this are re-encoded in the browser to about this size
 const MEDIABUNNY = 'https://cdn.jsdelivr.net/npm/mediabunny@1.61.0/+esm';
+// WASM AAC encoder for browsers whose WebCodecs can't encode AAC. It imports the exact same
+// mediabunny URL above, so registering it affects the instance we use.
+const MEDIABUNNY_AAC = 'https://cdn.jsdelivr.net/npm/@mediabunny/aac-encoder@1.61.0/+esm';
 const IMG_MAX_SIDE = 2400;
 
 const $ = id => document.getElementById(id);
@@ -263,6 +266,7 @@ async function shrinkImage(file) {
 async function compressVideo(file, onProgress) {
   const mb = await import(MEDIABUNNY).catch(() => { throw new Error('the video tools couldn’t load. Check the connection and try again'); });
   if (!(await mb.canEncodeVideo('avc'))) throw new Error('this browser can’t re-encode video. Try Chrome or Edge');
+  if (!(await mb.canEncodeAudio('aac'))) (await import(MEDIABUNNY_AAC)).registerAacEncoder();
   const input = new mb.Input({ source: new mb.BlobSource(file), formats: mb.ALL_FORMATS });
   const track = await input.getPrimaryVideoTrack();
   if (!track) throw new Error('it has no video track this browser can read');
@@ -280,8 +284,17 @@ async function compressVideo(file, onProgress) {
   const video = { codec: 'avc', quality: new mb.Quality({ bitrate: Math.round(videoBits) }), forceTranscode: true };
   if (short > cap) video.width = Math.round(w * cap / short / 2) * 2;
   const output = new mb.Output({ format: new mb.Mp4OutputFormat({ fastStart: 'in-memory' }), target: new mb.BufferTarget() });
-  const conversion = await mb.Conversion.init({ input, output, video });
-  if (!conversion.isValid || conversion.discardedTracks.some(t => t.track.type === 'audio')) throw new Error('this browser can’t convert its video or sound. Try Chrome or Edge');
+  // AAC keeps the file playable on older iPhones (Opus-in-MP4 isn't); AAC sources are copied as-is
+  const conversion = await mb.Conversion.init({ input, output, video, audio: { codec: 'aac' } });
+  const lost = conversion.discardedTracks.filter(t => t.track.type === 'video' || t.track.type === 'audio');
+  if (!conversion.isValid || lost.length) {
+    const codecs = await Promise.all(lost.map(t => t.track.getCodec().catch(() => null)));
+    const why = lost.map((t, i) => `${t.track.type} ${codecs[i] || 'unknown codec'}: ${t.reason.replace(/_/g, ' ')}`);
+    console.warn('Video conversion failed', file.name, why);
+    if (lost.some((t, i) => t.track.type === 'video' && codecs[i] === 'hevc' && t.reason === 'undecodable_source_codec'))
+      throw new Error('it’s an HEVC (High Efficiency) video, and this computer can’t decode HEVC in the browser. On iPhone, set Settings → Camera → Formats → Most Compatible and re-record, or upload it to YouTube and add the link');
+    throw new Error(`this browser couldn’t convert it (${why.join('; ') || 'no usable tracks'})`);
+  }
   conversion.onProgress = onProgress;
   await conversion.execute();
   const blob = new Blob([output.target.buffer], { type: 'video/mp4' });
