@@ -267,11 +267,13 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .top-actions { justify-self: end; display: flex; gap: .6em; }
 
 /* ---------- reels ---------- */
+/* pinned to the viewport bottom, not the stage: on wide screens the stage overflows vertically
+   and a centred shelf would push the reels below the fold */
 .shelf {
-  position: absolute; left: 50%; top: 50%; z-index: 7; pointer-events: none;
+  position: absolute; left: 50%; bottom: 0; z-index: 7; pointer-events: none;
   width: max(100vw, calc(100svh * 1670 / 942));
   height: max(100svh, calc(100vw * 942 / 1670));
-  transform: translate(-50%, -50%);
+  transform: translateX(-50%);
 }
 .reel {
   position: absolute; width: 13%;
