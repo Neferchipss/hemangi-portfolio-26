@@ -109,12 +109,6 @@ function applyContent() {
   const s = content.site;
   $('credits-name').textContent = s.name || 'Hemangi';
   $('credits-about').textContent = s.about || '';
-  const list = $('credits-list'); list.replaceChildren();
-  content.reels.forEach(r => {
-    const dt = document.createElement('dt'); dt.textContent = r.act;
-    const dd = document.createElement('dd'); dd.textContent = r.title;
-    list.append(dt, dd);
-  });
   const links = $('credits-links'); links.replaceChildren();
   if (s.email) links.append(link(`mailto:${s.email}`, s.email));
   (s.links || []).filter(l => l.url).forEach(l => links.append(link(l.url, l.label || l.url)));

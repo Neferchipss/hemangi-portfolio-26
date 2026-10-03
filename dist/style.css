@@ -59,8 +59,8 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .bottom-ribbon {
   position: absolute; z-index: 4; left: 0; right: 0; bottom: 0; height: 15%;
   pointer-events: none;
-  background: linear-gradient(180deg, #b5161040 0%, #b51610a8 24%, #8d0d0bd9 100%);
-  border-top: 1px solid #f178594d;
+  background: linear-gradient(180deg, #a8140f 0%, #9a110d 24%, #7a0b09 100%);
+  border-top: 1px solid #c8463a;
   box-shadow: inset 0 calc(var(--u) * .35) calc(var(--u) * 1.3) #47070466;
 }
 
@@ -326,13 +326,10 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 }
 .credits::backdrop { background: #070202d9; backdrop-filter: blur(3px); }
 .credits-roll { padding: 44px 40px 36px; text-align: center; }
-.credits-kicker { margin: 0; font-family: var(--display); font-size: 12px; letter-spacing: .18em; text-transform: uppercase; opacity: .6; }
-.credits h2 { margin: 10px 0 18px; font-family: var(--script); font-weight: 400; font-size: 44px; color: var(--gold); }
-.credits-about { font-size: 19px; line-height: 1.45; margin: 0 0 26px; }
-.credits-list { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 18px; margin: 0 0 26px; font-size: 16px; }
-.credits-list dt { font-family: var(--display); font-size: 12px; text-align: right; opacity: .6; text-transform: uppercase; letter-spacing: .08em; }
-.credits-list dd { margin: 0; text-align: left; }
+.credits h2 { margin: 0 0 18px; font-family: var(--script); font-weight: 400; font-size: 44px; color: var(--gold); }
+.credits-about { font-size: 19px; line-height: 1.45; margin: 0 0 26px; text-wrap: balance; }
 .credits-links { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-bottom: 26px; }
+.credits-links:empty { display: none; }
 .credits-links a { color: var(--gold); font-size: 14px; letter-spacing: .08em; }
 .credits .chip { font-size: 12px; }
 
