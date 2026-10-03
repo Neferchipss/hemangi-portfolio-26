@@ -14,6 +14,8 @@ const REELS = [
 const DEFAULT_REPO = 'Neferchipss/hemangi-portfolio-26';
 const MAX_FILE = 95 * 1024 * 1024;   // GitHub rejects files over 100 MB
 const WARN_FILE = 40 * 1024 * 1024;
+const VIDEO_TARGET = 45 * 1024 * 1024;   // videos bigger than this are re-encoded in the browser to about this size
+const MEDIABUNNY = 'https://cdn.jsdelivr.net/npm/mediabunny@1.61.0/+esm';
 const IMG_MAX_SIDE = 2400;
 
 const $ = id => document.getElementById(id);
@@ -220,7 +222,7 @@ function dropZone(reel) {
   const picker = h('input', { type: 'file', multiple: true, accept: 'image/*,video/*,audio/*', hidden: true });
   picker.addEventListener('change', () => { addFiles(reel, [...picker.files]); picker.value = ''; });
   const zone = h('div', { class: 'drop' },
-    h('div', {}, h('strong', {}, 'Drop photos, videos or audio here'), h('br'), h('small', {}, 'Big photos are resized automatically. For long videos, a YouTube or Vimeo link is kinder to the site.')),
+    h('div', {}, h('strong', {}, 'Drop photos, videos or audio here'), h('br'), h('small', {}, 'Big photos are resized and big videos are compressed automatically. For videos longer than about 12 minutes, use a YouTube or Vimeo link.')),
     h('div', { class: 'drop-actions' },
       h('button', { class: 'btn primary', type: 'button', onclick: () => picker.click() }, 'Choose files'),
       h('button', { class: 'btn', type: 'button', onclick: () => addLink(reel) }, 'Add a link')),
@@ -256,14 +258,56 @@ async function shrinkImage(file) {
   return { blob: file, ext: file.name.split('.').pop().toLowerCase() };
 }
 
+// Re-encodes a big video to H.264 MP4 at a bitrate that lands near VIDEO_TARGET, using the
+// browser's own (usually hardware) encoder through Mediabunny. Throws with a message for the user.
+async function compressVideo(file, onProgress) {
+  const mb = await import(MEDIABUNNY).catch(() => { throw new Error('the video tools couldn’t load. Check the connection and try again'); });
+  if (!(await mb.canEncodeVideo('avc'))) throw new Error('this browser can’t re-encode video. Try Chrome or Edge');
+  const input = new mb.Input({ source: new mb.BlobSource(file), formats: mb.ALL_FORMATS });
+  const track = await input.getPrimaryVideoTrack();
+  if (!track) throw new Error('it has no video track this browser can read');
+  const duration = await input.computeDuration();
+  const audioBits = (await input.getPrimaryAudioTrack()) ? 160e3 : 0;
+  // 8% headroom for container overhead and encoder overshoot. Aim for VIDEO_TARGET, but let long
+  // videos grow toward 90 MB rather than drop below a watchable 1.5 Mbps.
+  const bitsFor = bytes => bytes * 8 * .92 / duration - audioBits;
+  let videoBits = Math.min(8e6, bitsFor(VIDEO_TARGET));
+  if (videoBits < 1.5e6) videoBits = Math.min(1.5e6, bitsFor(90 * 1024 * 1024));
+  if (videoBits < 700e3) throw new Error(`it’s too long (${Math.round(duration / 60)} min) to fit without looking bad. Upload it to YouTube or Vimeo and add the link instead`);
+  // keep the short side at 1080p, or 720p when the bitrate is tight
+  const w = await track.getDisplayWidth(), hgt = await track.getDisplayHeight();
+  const short = Math.min(w, hgt), cap = videoBits < 2.5e6 ? 720 : 1080;
+  const video = { codec: 'avc', quality: new mb.Quality({ bitrate: Math.round(videoBits) }), forceTranscode: true };
+  if (short > cap) video.width = Math.round(w * cap / short / 2) * 2;
+  const output = new mb.Output({ format: new mb.Mp4OutputFormat({ fastStart: 'in-memory' }), target: new mb.BufferTarget() });
+  const conversion = await mb.Conversion.init({ input, output, video });
+  if (!conversion.isValid || conversion.discardedTracks.some(t => t.track.type === 'audio')) throw new Error('this browser can’t convert its video or sound. Try Chrome or Edge');
+  conversion.onProgress = onProgress;
+  await conversion.execute();
+  const blob = new Blob([output.target.buffer], { type: 'video/mp4' });
+  if (blob.size > MAX_FILE) throw new Error('it’s still over 95 MB after compressing. Upload it to YouTube or Vimeo and add the link instead');
+  return blob;
+}
+
 async function addFiles(reel, files) {
   let added = 0;
   for (const file of files) {
     const type = kindOf(file);
     if (!type) { toast(`“${file.name}” isn’t a photo, video or audio file, so it was skipped.`, true); continue; }
-    if (file.size > MAX_FILE) { toast(`“${file.name}” is over 95 MB, which GitHub won’t accept. Upload it to YouTube or Vimeo and add the link instead.`, true); continue; }
-    if (file.size > WARN_FILE) toast(`“${file.name}” is quite big (${Math.round(file.size / 1048576)} MB). It will work, but a YouTube/Vimeo link loads faster for visitors.`);
-    const { blob, ext } = type === 'image' ? await shrinkImage(file) : { blob: file, ext: file.name.split('.').pop().toLowerCase() };
+    let blob = file, ext = file.name.split('.').pop().toLowerCase();
+    if (type === 'video' && file.size > VIDEO_TARGET) {
+      const bar = h('span');
+      const show = frac => { toast(h('span', {}, `Compressing “${file.name}” (${Math.round(file.size / 1048576)} MB)… keep this tab open. ${Math.round(frac * 100)}%`, h('div', { class: 'progress' }, bar)), false, 0); bar.style.width = `${Math.round(frac * 100)}%`; };
+      busy = true; markDirty(); show(0);
+      try {
+        blob = await compressVideo(file, show); ext = 'mp4';
+        toast(`“${file.name}” compressed from ${Math.round(file.size / 1048576)} MB to ${Math.round(blob.size / 1048576)} MB.`);
+      } catch (e) {
+        toast(`Couldn’t add “${file.name}”: ${e.message}.`, true, 12000); continue;
+      } finally { busy = false; markDirty(); }
+    } else if (file.size > MAX_FILE) { toast(`“${file.name}” is over 95 MB, which GitHub won’t accept. Upload it to YouTube, Vimeo or SoundCloud and add the link instead.`, true); continue; }
+    else if (file.size > WARN_FILE) toast(`“${file.name}” is quite big (${Math.round(file.size / 1048576)} MB). It will work, but it will load slowly for visitors.`);
+    if (type === 'image') ({ blob, ext } = await shrinkImage(file));
     const src = `media/${reel.id}/${slug(file.name.replace(/\.[^.]+$/, ''))}-${rand()}.${ext}`;
     pending.set(src, { blob, url: URL.createObjectURL(blob) });
     reel.items.push({ type, src, caption: '' });
