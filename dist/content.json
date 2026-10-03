@@ -5,7 +5,10 @@
     "about": "Singer, painter, maker and brewer. Pick a reel to see what I make.",
     "email": "",
     "links": [
-      { "label": "Instagram", "url": "" }
+      {
+        "label": "Instagram",
+        "url": ""
+      }
     ]
   },
   "reels": [
@@ -14,7 +17,13 @@
       "act": "Prequel",
       "title": "Singing",
       "tagline": "For the things words alone can't say.",
-      "items": []
+      "items": [
+        {
+          "type": "video",
+          "src": "media/singing/18538b861fcda9b1aaf7428c886648bc-vwcg.mp4",
+          "caption": ""
+        }
+      ]
     },
     {
       "id": "painting",
