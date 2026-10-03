@@ -70,7 +70,31 @@ let drag = null, suppressClick = false, idleTimer = 0, previewing = false;
 new ResizeObserver(() => {
   stage.style.setProperty('--u', stage.getBoundingClientRect().width / 100 + 'px');
   cinema.style.setProperty('--u', cinema.getBoundingClientRect().width / 100 + 'px');
+  warpMedia();
 }).observe(stage);
+
+// ---------- screen perspective ----------
+// The drawn screen is not a flat rectangle: its top edge drops toward the right. These are the
+// corners of the hole cut in bg-front.webp (TL, TR, BR, BL) in 1670x942 stage pixels.
+// Media is warped onto that quad so it sits on the screen instead of floating flat over it.
+const SCREEN_QUAD = [[172.6, 115], [1060.8, 155.4], [1063.1, 599], [167.1, 598.7]];
+const SCREEN_BOX = { x: .099, y: .123, w: .54, h: .516 };   // must match .screen in style.css
+function warpMedia() {
+  const sw = stage.offsetWidth, sh = stage.offsetHeight;
+  const w = sw * SCREEN_BOX.w, h = sh * SCREEN_BOX.h;
+  if (!w || !h) return;
+  // quad corners in the .screen element's own pixels
+  const [p0, p1, p2, p3] = SCREEN_QUAD.map(([x, y]) => [x / 1670 * sw - sw * SCREEN_BOX.x, y / 942 * sh - sh * SCREEN_BOX.y]);
+  // unit square -> quad homography (Heckbert), then scaled to take element pixels
+  const sx = p0[0] - p1[0] + p2[0] - p3[0], sy = p0[1] - p1[1] + p2[1] - p3[1];
+  const dx1 = p1[0] - p2[0], dx2 = p3[0] - p2[0], dy1 = p1[1] - p2[1], dy2 = p3[1] - p2[1];
+  const den = dx1 * dy2 - dx2 * dy1;
+  const g = (sx * dy2 - dx2 * sy) / den, k = (dx1 * sy - sx * dy1) / den;
+  const a = p1[0] - p0[0] + g * p1[0], b = p3[0] - p0[0] + k * p3[0];
+  const d = p1[1] - p0[1] + g * p1[1], e = p3[1] - p0[1] + k * p3[1];
+  const m = [a / w, d / w, 0, g / w, b / h, e / h, 0, k / h, 0, 0, 1, 0, p0[0], p0[1], 0, 1];
+  screen.style.setProperty('--media-warp', `matrix3d(${m.map(v => +v.toFixed(8)).join(',')})`);
+}
 
 // ---------- content ----------
 async function loadContent() {

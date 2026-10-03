@@ -156,7 +156,8 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 
 /* player */
 .player { background: #0d0a07; color: var(--cream); }
-.slide-holder { position: absolute; inset: 0; }
+.slide-holder { position: absolute; inset: 0; transform-origin: 0 0; transform: var(--media-warp, none); }
+.screen.theatre .slide-holder { transform: none; }
 .slide {
   position: absolute; inset: 0; display: grid; place-items: center;
   animation: splice .45s ease both;
