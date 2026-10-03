@@ -12,9 +12,11 @@ const REELS = [
   { id: 'brewing', act: 'The Spin-off', title: 'Brewing' }
 ];
 const DEFAULT_REPO = 'Neferchipss/hemangi-portfolio-26';
-const MAX_FILE = 95 * 1024 * 1024;   // GitHub rejects files over 100 MB
+// GitHub's blob API (base64 JSON) refuses files somewhere between 37 and 40 MB (measured 2026-10-03),
+// well under the 100 MB git limit.
+const MAX_FILE = 35 * 1024 * 1024;
 const WARN_FILE = 40 * 1024 * 1024;
-const VIDEO_TARGET = 45 * 1024 * 1024;   // videos bigger than this are re-encoded in the browser to about this size
+const VIDEO_TARGET = 30 * 1024 * 1024;   // videos bigger than this are re-encoded in the browser to about this size
 const MEDIABUNNY = 'https://cdn.jsdelivr.net/npm/mediabunny@1.61.0/+esm';
 // WASM AAC encoder for browsers whose WebCodecs can't encode AAC. It imports the exact same
 // mediabunny URL above, so registering it affects the instance we use.
@@ -225,7 +227,7 @@ function dropZone(reel) {
   const picker = h('input', { type: 'file', multiple: true, accept: 'image/*,video/*,audio/*', hidden: true });
   picker.addEventListener('change', () => { addFiles(reel, [...picker.files]); picker.value = ''; });
   const zone = h('div', { class: 'drop' },
-    h('div', {}, h('strong', {}, 'Drop photos, videos or audio here'), h('br'), h('small', {}, 'Big photos are resized and big videos are compressed automatically. For videos longer than about 12 minutes, use a YouTube or Vimeo link.')),
+    h('div', {}, h('strong', {}, 'Drop photos, videos or audio here'), h('br'), h('small', {}, 'Big photos are resized and big videos are compressed automatically. For videos longer than about 5 minutes, use a YouTube or Vimeo link.')),
     h('div', { class: 'drop-actions' },
       h('button', { class: 'btn primary', type: 'button', onclick: () => picker.click() }, 'Choose files'),
       h('button', { class: 'btn', type: 'button', onclick: () => addLink(reel) }, 'Add a link')),
@@ -289,24 +291,24 @@ async function compressVideo(file, onProgress) {
   }
   if (a.all.length && !audioTrack) throw new Error(`its sound format (${await codecList(a.all)}) can’t be read in this browser`);
   const duration = await input.computeDuration();
-  const audioBits = audioTrack ? 160e3 : 0;
+  const audioBits = audioTrack ? 128e3 : 0;
   // 8% headroom for container overhead and encoder overshoot. Aim for VIDEO_TARGET, but let long
-  // videos grow toward 90 MB rather than drop below a watchable 1.5 Mbps.
+  // videos grow toward 33 MB rather than drop below 1.5 Mbps.
   const bitsFor = bytes => bytes * 8 * .92 / duration - audioBits;
   let videoBits = Math.min(8e6, bitsFor(VIDEO_TARGET));
-  if (videoBits < 1.5e6) videoBits = Math.min(1.5e6, bitsFor(90 * 1024 * 1024));
-  if (videoBits < 700e3) throw new Error(`it’s too long (${Math.round(duration / 60)} min) to fit without looking bad. Upload it to YouTube or Vimeo and add the link instead`);
-  // keep the short side at 1080p, or 720p when the bitrate is tight
+  if (videoBits < 1.5e6) videoBits = Math.min(1.5e6, bitsFor(33 * 1024 * 1024));
+  if (videoBits < 600e3) throw new Error(`it’s too long (${Math.round(duration / 60)} min) to fit without looking bad. Upload it to YouTube or Vimeo and add the link instead`);
+  // keep the short side at 1080p, dropping to 720p/540p as the bitrate gets tight
   const w = await track.getDisplayWidth(), hgt = await track.getDisplayHeight();
-  const short = Math.min(w, hgt), cap = videoBits < 2.5e6 ? 720 : 1080;
+  const short = Math.min(w, hgt), cap = videoBits < 1.2e6 ? 540 : videoBits < 2.5e6 ? 720 : 1080;
   const video = { codec: 'avc', quality: new mb.Quality({ bitrate: Math.round(videoBits) }), forceTranscode: true };
   if (short > cap) video.width = Math.round(w * cap / short / 2) * 2;
   const output = new mb.Output({ format: new mb.Mp4OutputFormat({ fastStart: 'in-memory' }), target: new mb.BufferTarget() });
-  // AAC keeps the file playable on older iPhones (Opus-in-MP4 isn't); AAC sources are copied as-is
+  // AAC keeps the file playable on older iPhones (Opus-in-MP4 isn't); always re-encoded at 128 kbps so the size is predictable
   const conversion = await mb.Conversion.init({
     input, output,
     video: t => t.id === track.id ? video : { discard: true },
-    audio: t => audioTrack && t.id === audioTrack.id ? { codec: 'aac' } : { discard: true }
+    audio: t => audioTrack && t.id === audioTrack.id ? { codec: 'aac', quality: new mb.Quality({ bitrate: 128e3 }) } : { discard: true }
   });
   const lost = conversion.discardedTracks.filter(t => t.reason !== 'discarded_by_user' && (t.track.type === 'video' || t.track.type === 'audio'));
   if (!conversion.isValid || lost.length) {
@@ -320,7 +322,7 @@ async function compressVideo(file, onProgress) {
   conversion.onProgress = onProgress;
   await conversion.execute();
   const blob = new Blob([output.target.buffer], { type: 'video/mp4' });
-  if (blob.size > MAX_FILE) throw new Error('it’s still over 95 MB after compressing. Upload it to YouTube or Vimeo and add the link instead');
+  if (blob.size > MAX_FILE) throw new Error('it’s still over 35 MB after compressing. Upload it to YouTube or Vimeo and add the link instead');
   return blob;
 }
 
@@ -340,7 +342,7 @@ async function addFiles(reel, files) {
       } catch (e) {
         toast(`Couldn’t add “${file.name}”: ${e.message}.`, true, 12000); continue;
       } finally { busy = false; markDirty(); }
-    } else if (file.size > MAX_FILE) { toast(`“${file.name}” is over 95 MB, which GitHub won’t accept. Upload it to YouTube, Vimeo or SoundCloud and add the link instead.`, true); continue; }
+    } else if (file.size > MAX_FILE) { toast(`“${file.name}” is over 35 MB, which GitHub won’t accept from the browser. Upload it to YouTube, Vimeo or SoundCloud and add the link instead.`, true); continue; }
     else if (file.size > WARN_FILE) toast(`“${file.name}” is quite big (${Math.round(file.size / 1048576)} MB). It will work, but it will load slowly for visitors.`);
     if (type === 'image') ({ blob, ext } = await shrinkImage(file));
     const src = `media/${reel.id}/${slug(file.name.replace(/\.[^.]+$/, ''))}-${rand()}.${ext}`;
