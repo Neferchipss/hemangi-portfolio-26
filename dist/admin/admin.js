@@ -268,10 +268,28 @@ async function compressVideo(file, onProgress) {
   if (!(await mb.canEncodeVideo('avc'))) throw new Error('this browser can’t re-encode video. Try Chrome or Edge');
   if (!(await mb.canEncodeAudio('aac'))) (await import(MEDIABUNNY_AAC)).registerAacEncoder();
   const input = new mb.Input({ source: new mb.BlobSource(file), formats: mb.ALL_FORMATS });
-  const track = await input.getPrimaryVideoTrack();
-  if (!track) throw new Error('it has no video track this browser can read');
+  // Phones add tracks no browser can read next to the normal ones (iPhone spatial audio is a
+  // second, APAC-coded audio track; Cinematic mode adds depth video). Keep the first readable
+  // video and audio track, primary first, and drop the rest.
+  const pick = async (primary, all) => {
+    const list = [primary, ...all.filter(t => t !== primary)].filter(Boolean);
+    for (const t of list) if (await t.getCodec() && await t.canDecode()) return { track: t, all: list };
+    return { track: null, all: list };
+  };
+  const codecList = async list => (await Promise.all(list.map(t => t.getCodec()))).map(c => c || 'unknown').join(', ');
+  const v = await pick(await input.getPrimaryVideoTrack(), await input.getVideoTracks());
+  const a = await pick(await input.getPrimaryAudioTrack(), await input.getAudioTracks());
+  const track = v.track, audioTrack = a.track;
+  if (!track) {
+    const codecs = await codecList(v.all);
+    console.warn('No readable video track', file.name, codecs);
+    if (codecs.includes('hevc'))
+      throw new Error('it’s an HEVC (High Efficiency) video, and this computer can’t decode HEVC in the browser. On iPhone, set Settings → Camera → Formats → Most Compatible and re-record, or upload it to YouTube and add the link');
+    throw new Error(v.all.length ? `its video format (${codecs}) can’t be read in this browser` : 'it has no video track');
+  }
+  if (a.all.length && !audioTrack) throw new Error(`its sound format (${await codecList(a.all)}) can’t be read in this browser`);
   const duration = await input.computeDuration();
-  const audioBits = (await input.getPrimaryAudioTrack()) ? 160e3 : 0;
+  const audioBits = audioTrack ? 160e3 : 0;
   // 8% headroom for container overhead and encoder overshoot. Aim for VIDEO_TARGET, but let long
   // videos grow toward 90 MB rather than drop below a watchable 1.5 Mbps.
   const bitsFor = bytes => bytes * 8 * .92 / duration - audioBits;
@@ -285,8 +303,12 @@ async function compressVideo(file, onProgress) {
   if (short > cap) video.width = Math.round(w * cap / short / 2) * 2;
   const output = new mb.Output({ format: new mb.Mp4OutputFormat({ fastStart: 'in-memory' }), target: new mb.BufferTarget() });
   // AAC keeps the file playable on older iPhones (Opus-in-MP4 isn't); AAC sources are copied as-is
-  const conversion = await mb.Conversion.init({ input, output, video, audio: { codec: 'aac' } });
-  const lost = conversion.discardedTracks.filter(t => t.track.type === 'video' || t.track.type === 'audio');
+  const conversion = await mb.Conversion.init({
+    input, output,
+    video: t => t.id === track.id ? video : { discard: true },
+    audio: t => audioTrack && t.id === audioTrack.id ? { codec: 'aac' } : { discard: true }
+  });
+  const lost = conversion.discardedTracks.filter(t => t.reason !== 'discarded_by_user' && (t.track.type === 'video' || t.track.type === 'audio'));
   if (!conversion.isValid || lost.length) {
     const codecs = await Promise.all(lost.map(t => t.track.getCodec().catch(() => null)));
     const why = lost.map((t, i) => `${t.track.type} ${codecs[i] || 'unknown codec'}: ${t.reason.replace(/_/g, ' ')}`);
