@@ -172,7 +172,7 @@ async function play(id, fromEl) {
   const reel = content.reels.find(r => r.id === id);
   if (!reel) return;
   const my = ++run;
-  closeTheatre();
+  closeTheatre(); clearPlayer();
   active = reel; index = 0;
   shelf.querySelectorAll('.reel').forEach(b => b.classList.toggle('on-projector', b.dataset.id === id));
   hint(`Threading ${reel.title.toLowerCase()}…`); say(`Loading ${reel.act}, ${reel.title}.`);
@@ -201,7 +201,7 @@ async function play(id, fromEl) {
 function eject() {
   run++; sound.stop(.2); closeTheatre();
   const was = active; active = null;
-  scenes.player.querySelector('.slide-holder').replaceChildren();
+  clearPlayer();
   show('welcome'); setMode('idle');
   shelf.querySelectorAll('.reel').forEach(b => b.classList.remove('on-projector'));
   hint('Pick a reel. Drag it to the projector.');
@@ -209,6 +209,14 @@ function eject() {
 }
 
 // ---------- player ----------
+// Silence and drop whatever is on the screen. Hiding the player scene doesn't stop a video,
+// so without this the last reel keeps talking through the next one's countdown.
+function clearPlayer() {
+  const holder = $('slide-holder');
+  holder.querySelectorAll('video, audio').forEach(m => { m.pause(); m.removeAttribute('src'); m.load(); });
+  holder.replaceChildren();
+}
+
 function embedUrl(url) {
   try {
     const u = new URL(url, location.href), h = u.hostname.replace(/^www\.|^m\./, '');
@@ -238,6 +246,18 @@ function renderItem(item) {
     // where the browser still blocks it (iOS), fall back to muted rather than a frozen frame.
     v.autoplay = true;
     v.play()?.catch(() => { v.muted = true; v.play().catch(() => {}); });
+    // Loop through a film runout: the frame weaves and burns, slips a frame line,
+    // and comes back on the first frame. Rewound mid-slip so the reveal is the start.
+    v.addEventListener('ended', () => {
+      const ms = reduced ? 0 : 1300, my = run;
+      slide.classList.add('runout'); sound.start();
+      setTimeout(() => { v.currentTime = 0; }, ms * .55);
+      setTimeout(() => {
+        slide.classList.remove('runout');
+        if (slide.isConnected) v.play().catch(() => {});
+        else if (my === run) sound.stop(.2); // paged away mid-runout; a reel switch owns its own sound
+      }, ms);
+    });
     slide.append(v);
   } else if (item.type === 'audio') {
     slide.classList.add('audio');

@@ -164,6 +164,34 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 }
 .slide > img, .slide > video { width: 100%; height: 100%; object-fit: contain; background: #0d0a07; }
 .slide > iframe { width: 100%; height: 100%; border: 0; background: #0d0a07; }
+
+/* runout between video loops: gate weave + burn, a frame slip, then back to frame one */
+.slide.runout { overflow: hidden; background: #0d0a07; }
+.slide.runout > video { animation: runout 1.3s linear both; }
+.slide.runout::after {
+  content: ''; position: absolute; inset: 0; pointer-events: none; mix-blend-mode: screen;
+  background:
+    repeating-linear-gradient(90deg, transparent 0 11%, #fff3 11.1%, transparent 11.3% 37%, #fff2 37.1%, transparent 37.2% 73%, #fff3 73.1%, transparent 73.3%),
+    radial-gradient(ellipse at center, transparent 45%, #000c 100%);
+  background-size: 140% 100%, 100% 100%;
+  animation: runout-scratch .13s steps(2) infinite, runout-fade 1.3s linear both;
+}
+@keyframes runout {
+  0%   { transform: none; filter: none; }
+  8%   { transform: translate(.4%, -1.2%); filter: sepia(.5) brightness(1.5) contrast(1.2); }
+  16%  { transform: translate(-.3%, .9%); filter: sepia(.6) brightness(.6); }
+  26%  { transform: translate(.2%, -.5%); filter: sepia(.7) brightness(1.8) contrast(1.3); }
+  36%  { transform: translate(0, .4%); filter: sepia(.8) brightness(.8) blur(1px); }
+  46%  { transform: translateY(0); filter: sepia(.9) brightness(2.2) blur(1px); }
+  55%  { transform: translateY(-104%); filter: sepia(.9) brightness(1.4); }
+  55.1%{ transform: translateY(104%); filter: sepia(.9) brightness(1.4); }
+  70%  { transform: translateY(-1%); filter: sepia(.6) brightness(1.9); }
+  80%  { transform: translateY(.6%); filter: sepia(.4) brightness(.8); }
+  90%  { transform: none; filter: sepia(.2) brightness(1.2); }
+  100% { transform: none; filter: none; }
+}
+@keyframes runout-scratch { to { background-position: 37% 0, 0 0; } }
+@keyframes runout-fade { 0%, 100% { opacity: 0; } 10%, 85% { opacity: 1; } }
 .slide.audio { gap: 4%; padding: 8% 12%; align-content: center; text-align: center; }
 .slide.audio img { width: 30%; animation: spin 6s linear infinite; }
 .slide.audio audio { width: min(100%, calc(var(--u) * 28)); }
