@@ -172,12 +172,22 @@ async function play(id, fromEl) {
   const reel = content.reels.find(r => r.id === id);
   if (!reel) return;
   const my = ++run;
-  closeTheatre(); clearPlayer();
+  closeTheatre();
+  // Something already on screen runs out (same burn as the loop) while the new reel flies over.
+  const leaving = !scenes.player.hidden && $('slide-holder').querySelector('.slide');
+  let out = null;
+  if (leaving) {
+    leaving.querySelectorAll('video, audio').forEach(m => m.pause());
+    leaving.classList.add('runout'); sound.start();
+    out = wait(1300);
+  } else clearPlayer();
   active = reel; index = 0;
   shelf.querySelectorAll('.reel').forEach(b => b.classList.toggle('on-projector', b.dataset.id === id));
   hint(`Threading ${reel.title.toLowerCase()}…`); say(`Loading ${reel.act}, ${reel.title}.`);
   if (fromEl) await flyToProjector(fromEl);
+  await out;
   if (my !== run) return;
+  clearPlayer();
 
   setMode('loading'); sound.start();
   show('leader');
@@ -428,7 +438,7 @@ const sound = (() => {
   });
   const api = {
     start() {
-      if (!on || reduced) return;
+      if (!on || reduced || node) return; // already humming: don't restart it mid-runout
       try {
         ctx ??= new (window.AudioContext || window.webkitAudioContext)();
         ctx.resume();

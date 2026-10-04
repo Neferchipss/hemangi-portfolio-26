@@ -167,7 +167,7 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 
 /* runout between video loops: gate weave + burn, a frame slip, then back to frame one */
 .slide.runout { overflow: hidden; background: #0d0a07; }
-.slide.runout > video { animation: runout 1.3s linear both; }
+.slide.runout > :is(video, img, iframe) { animation: runout 1.3s linear both; }
 .slide.runout::after {
   content: ''; position: absolute; inset: 0; pointer-events: none; mix-blend-mode: screen;
   background:
