@@ -234,6 +234,10 @@ function renderItem(item) {
     v.src = item.src; v.controls = true; v.playsInline = true; v.preload = 'metadata';
     if (item.poster) v.poster = item.poster;
     v.addEventListener('play', () => sound.stop(.2));
+    // Start on its own. Loading a reel counts as a click, so sound is usually allowed;
+    // where the browser still blocks it (iOS), fall back to muted rather than a frozen frame.
+    v.autoplay = true;
+    v.play()?.catch(() => { v.muted = true; v.play().catch(() => {}); });
     slide.append(v);
   } else if (item.type === 'audio') {
     slide.classList.add('audio');
