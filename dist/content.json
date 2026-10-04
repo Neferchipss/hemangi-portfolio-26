@@ -44,7 +44,13 @@
       "act": "Sequel",
       "title": "Fashion",
       "tagline": "A different kind of self-portrait.",
-      "items": []
+      "items": [
+        {
+          "type": "video",
+          "src": "media/fashion/img-0745-tjr1.mp4",
+          "caption": ""
+        }
+      ]
     },
     {
       "id": "brewing",
