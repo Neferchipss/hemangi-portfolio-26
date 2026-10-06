@@ -30,7 +30,13 @@
       "act": "Act 1",
       "title": "Painting",
       "tagline": "A world of my own, one stroke at a time.",
-      "items": []
+      "items": [
+        {
+          "type": "video",
+          "src": "media/painting/img-0769-51e1.mp4",
+          "caption": ""
+        }
+      ]
     },
     {
       "id": "craft",
