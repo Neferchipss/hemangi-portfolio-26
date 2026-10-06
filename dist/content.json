@@ -57,7 +57,13 @@
       "act": "The Spin-off",
       "title": "Brewing",
       "tagline": "Good things take their own sweet time.",
-      "items": []
+      "items": [
+        {
+          "type": "video",
+          "src": "media/brewing/img-0757-5qbm.mp4",
+          "caption": ""
+        }
+      ]
     }
   ]
 }
