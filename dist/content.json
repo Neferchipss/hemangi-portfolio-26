@@ -43,7 +43,13 @@
       "act": "Act 2",
       "title": "Maker culture",
       "tagline": "Made slowly. Made by hand. A little messy, a little magic.",
-      "items": []
+      "items": [
+        {
+          "type": "video",
+          "src": "media/craft/img-0768-b0o0.mp4",
+          "caption": ""
+        }
+      ]
     },
     {
       "id": "fashion",
