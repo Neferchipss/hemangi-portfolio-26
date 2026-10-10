@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#1a0605">
+  <meta name="robots" content="noindex">
+  <title>Scene 404 · Hemangi</title>
+  <script>
+    // A 404 can be served from any depth, so pin relative URLs to the site root.
+    // GitHub Pages project sites live under /<repo>/; custom domains and localhost live at /.
+    (function () {
+      var seg = location.pathname.split('/')[1];
+      var base = /\.github\.io$/.test(location.hostname) && seg ? '/' + seg + '/' : '/';
+      document.write('<base href="' + base + '">');
+    })();
+  </script>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Ccircle cx='20' cy='20' r='19' fill='%23140d0a'/%3E%3Ccircle cx='20' cy='20' r='15' fill='%23f2b705'/%3E%3Cg fill='%23140d0a'%3E%3Ccircle cx='20' cy='11' r='4'/%3E%3Ccircle cx='12' cy='24' r='4'/%3E%3Ccircle cx='28' cy='24' r='4'/%3E%3Ccircle cx='20' cy='20' r='2'/%3E%3C/g%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600&family=Cormorant+Garamond:wght@400;500;600&family=Yellowtail&display=swap">
+  <style>
+    :root {
+      color-scheme: dark;
+      --cream: #f1e2bd; --paper: #efe0bb; --ink: #1d1512; --red: #d8231a; --deep: #140605;
+      --gold: #f2b705; --teal: #2f5550;
+      --script: 'Yellowtail', 'Brush Script MT', cursive;
+      --type: 'Cormorant Garamond', Georgia, serif;
+      --display: 'Cinzel', Georgia, serif;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; min-height: 100%; }
+    :root { --sw: max(100vw, calc(100svh * 1670 / 942)); --u: calc(var(--sw) / 100); }
+    body { font-family: var(--type); font-size: 1.15rem; color: var(--cream); min-height: 100svh; background: #3b0b08; overflow: hidden; }
+    .stage { position: absolute; z-index: 0; left: 50%; top: 50%; width: var(--sw); height: calc(var(--sw) * 942 / 1670); transform: translate(-50%, -50%); }
+    .layer { position: absolute; inset: 0; width: 100%; height: 100%; max-width: none; pointer-events: none; }
+    .layer.front { z-index: 3; }
+    @media (max-aspect-ratio: 1/1) {
+      :root { --sw: 174vw; }
+      .stage { transform: none; left: calc(50vw - var(--sw) * .369); top: calc(7svh - var(--sw) * 942 / 1670 * .123); }
+    }
+    .ui { position: fixed; z-index: 10; left: 0; right: 0; bottom: 0; display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 12px 16px calc(14px + env(safe-area-inset-bottom)); }
+    main { width: min(640px, 100%); }
+    img { display: block; max-width: 100%; height: auto; }
+    button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+    a { color: inherit; }
+    :focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; }
+    [hidden] { display: none !important; }
+
+    /* the 404 is what's showing on the cinema screen (same rect as the main site) */
+    .screen { position: absolute; z-index: 2; left: 9.9%; top: 12.3%; width: 54%; height: 51.6%; overflow: hidden; background: var(--paper); color: var(--ink); display: grid; place-content: center; text-align: center; box-shadow: inset 0 0 calc(var(--u) * 5) #3b2a0d66; }
+    .screen::after { content: ''; position: absolute; inset: 0; pointer-events: none; opacity: .1; mix-blend-mode: multiply; background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); animation: flick .12s steps(2) infinite; }
+    .big { font-family: var(--display); font-weight: 600; font-size: calc(var(--u) * 10); letter-spacing: .14em; padding-left: .14em; line-height: 1; color: var(--red); text-shadow: 0 calc(var(--u) * .2) 0 #6b120855; margin: 0; animation: flick 4s infinite; }
+    .sub { font-family: var(--script); font-size: calc(var(--u) * 3.2); color: var(--ink); margin: calc(var(--u) * .6) 0 0; animation: flick 4s 1s infinite; }
+    .frame-mark { position: absolute; top: calc(var(--u) * 1); right: calc(var(--u) * 1.2); font-family: var(--display); font-size: calc(var(--u) * .9); letter-spacing: .2em; color: #1d151299; }
+    .frame-mark.l { right: auto; left: calc(var(--u) * 1.2); }
+    @keyframes flick { 0%, 100% { opacity: 1; } 92% { opacity: 1; } 93% { opacity: .75; } 95% { opacity: .98; } 97% { opacity: .85; } }
+    .mode { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+    .hint { margin: 0; text-shadow: 0 1px 4px #000; text-align: center; font-style: italic; opacity: .85; min-height: 1.4em; }
+    .cta { font-family: var(--display); letter-spacing: .12em; text-transform: uppercase; font-size: .85rem; background: var(--red); color: var(--cream); padding: 12px 22px; border-radius: 4px; border: 1px solid #ffffff33; box-shadow: 0 3px 0 #6b1208; text-decoration: none; display: inline-block; }
+    .cta:active { transform: translateY(2px); box-shadow: 0 1px 0 #6b1208; }
+    .cta.gold { background: var(--gold); color: var(--ink); box-shadow: 0 3px 0 #8a6500; }
+
+    /* ---------- 5 · ticket ---------- */
+    .booth { position: relative; width: min(600px, 100%); display: flex; justify-content: center; padding-top: 10px; }
+    .ticket { display: flex; background: var(--paper); color: var(--ink); border-radius: 10px; box-shadow: 0 14px 30px #000a; font-family: var(--display); position: relative; transform: rotate(-1.5deg); animation: slide .8s cubic-bezier(.2, .8, .2, 1); width: 100%; }
+    @keyframes slide { from { transform: translateY(-120%) rotate(-1.5deg); opacity: 0; } }
+    .ticket .main { flex: 1; padding: 18px 22px; border-right: 3px dashed #1d151255; }
+    .ticket .stubpart { width: 110px; padding: 18px 10px; display: grid; place-content: center; text-align: center; background: #e5d2a3; border-radius: 0 10px 10px 0; transition: transform 1s ease-in, opacity 1s; transform-origin: 0 0; cursor: pointer; }
+    .ticket.torn .stubpart { transform: translate(40px, 200px) rotate(28deg); opacity: 0; pointer-events: none; }
+    .ticket .err { display: inline-block; background: var(--red); color: var(--cream); padding: 2px 8px; border-radius: 3px; font-size: .7rem; letter-spacing: .2em; margin-bottom: 4px; }
+    .stubpart .big404 { font-size: 1.9rem; font-weight: 600; line-height: 1; }
+    .cut { position: absolute; top: -4px; bottom: -4px; right: 109px; width: 0; border-left: 3px dashed var(--red); pointer-events: none; animation: dashpulse 1.2s steps(2) infinite; }
+    .ticket.torn .cut, .ticket.torn .pointer { display: none; }
+    @keyframes dashpulse { 50% { border-color: transparent; } }
+    .pointer { position: absolute; right: 38px; bottom: 6px; z-index: 3; font-size: 2.4rem; pointer-events: none; transform-origin: 50% 90%; animation: poke 1.3s ease-in-out infinite; filter: drop-shadow(0 3px 3px #0008); }
+    .stubpart:hover { background: #f0dca8; }
+    @keyframes poke { 0%, 100% { transform: translate(14px, 6px) rotate(-12deg); } 50% { transform: translate(-6px, -2px) rotate(-12deg); } }
+    .ticket small { letter-spacing: .25em; font-size: .6rem; opacity: .7; display: block; }
+    .ticket h3 { margin: 4px 0 8px; font-size: clamp(1.1rem, 4vw, 1.6rem); letter-spacing: .1em; }
+    .ticket p { margin: 2px 0; font-family: var(--type); font-size: 1.05rem; font-weight: 600; }
+    .ticket::before, .ticket::after { content: ''; position: absolute; right: 99px; width: 20px; height: 20px; background: #2a0d09; border-radius: 50%; }
+    .ticket::before { top: -10px; } .ticket::after { bottom: -10px; }
+    .showing { display: flex; flex-direction: column; align-items: center; gap: 8px; animation: fade .6s; }
+    .showing h4 { font-family: var(--display); letter-spacing: .18em; text-transform: uppercase; font-size: .8rem; margin: 0; color: var(--gold); text-shadow: 0 1px 4px #000; }
+    .showing .row { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+    .showing a { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px 8px; width: 92px; border: 1px solid #f1e2bd44; border-radius: 6px; background: #140605cc; text-decoration: none; transition: .2s; font-size: .95rem; }
+    .showing a:hover { border-color: var(--gold); transform: translateY(-3px); }
+    .showing img { width: 44px; }
+    .showing a span { text-align: center; line-height: 1.1; }
+    .showing b { display: block; font-family: var(--display); font-size: .55rem; letter-spacing: .1em; color: var(--gold); text-transform: uppercase; }
+    @keyframes fade { from { opacity: 0; transform: translateY(8px); } }
+    footer { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; justify-content: center; }
+    footer .path { font-size: .85rem; opacity: .6; max-width: 90vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    @media (prefers-reduced-motion: reduce) { * { animation-duration: .01s !important; transition-duration: .01s !important; } }
+  </style>
+</head>
+<body>
+  <div class="stage">
+    <img class="layer" src="assets/bg.webp" alt="" width="1670" height="942">
+    <header class="screen" aria-label="Error 404">
+      <span class="frame-mark l">REEL 4 · 04</span><span class="frame-mark">▶ NOW SHOWING</span>
+      <h1 class="big">404</h1>
+      <p class="sub">this scene never made the final cut</p>
+    </header>
+    <img class="layer front" src="assets/bg-front.webp" alt="" width="1670" height="942">
+  </div>
+
+  <div class="ui">
+    <main>
+      <section class="mode" id="m-ticket" aria-label="Wrong ticket">
+        <div class="booth" id="booth"></div>
+        <p class="hint" id="ticket-hint">Nothing to see here. Tear off the stub to find what&rsquo;s actually playing.</p>
+        <div class="showing" id="showing" hidden></div>
+      </section>
+    </main>
+    <footer>
+      <span class="path" id="path"></span>
+      <a class="cta gold" href="./">Take me home</a>
+    </footer>
+  </div>
+
+<script>
+(() => {
+  const $ = s => document.querySelector(s);
+  const REELS = [
+    ['singing', 'Prequel', 'Singing'], ['painting', 'Act 1', 'Painting'], ['craft', 'Act 2', 'Maker culture'],
+    ['fashion', 'Sequel', 'Fashion'], ['brewing', 'The Spin-off', 'Brewing']
+  ];
+  
+  $('#path').textContent = decodeURIComponent(location.pathname);
+
+  /* ----- 5 · ticket ----- */
+  (() => {
+    const booth = $('#booth');
+    booth.innerHTML = `
+      <div class="ticket" id="ticket">
+        <div class="main"><span class="err">ERROR 404</span><small>An Unpredictable Person · Picture House</small>
+          <h3>PAGE NOT FOUND</h3>
+          <p>This page doesn&rsquo;t exist, or has moved.</p><p style="opacity:.7;font-weight:500">Admit one · Row 4 · Seat 0</p></div>
+        <div class="stubpart" id="stubpart" role="button" tabindex="0" aria-label="Tear the stub off to see what is playing"><small>tear here</small><b class="big404">404</b><b style="font-size:1.4rem;opacity:0">✂</b></div>
+        <span class="cut"></span><span class="pointer" aria-hidden="true">👆</span>
+      </div>`;
+    const tear = () => {
+      $('#ticket').classList.add('torn');
+      $('#ticket-hint').hidden = true;
+      const s = $('#showing');
+      s.innerHTML = '<h4>Now showing instead</h4><div class="row">' + REELS.map(([id, act, title]) =>
+        `<a href="./"><img src="assets/reel-${id}.webp" alt=""><span><b>${act}</b>${title}</span></a>`).join('') + '</div>';
+      s.hidden = false;
+      setTimeout(() => { $('#booth').hidden = true; }, 1100);
+    };
+    $('#stubpart').onclick = tear;
+    $('#stubpart').onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') tear(); };
+  })();
+})();
+</script>
+</body>
+</html>
